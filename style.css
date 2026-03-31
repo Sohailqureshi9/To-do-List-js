@@ -14,6 +14,22 @@
     --shadow: 0 16px 50px rgba(69, 39, 19, 0.14);
 }
 
+[data-theme="dark"] {
+    --bg: #1a1f2e;
+    --ink: #e8eaed;
+    --muted: #9aa0a6;
+    --panel: rgba(30, 35, 48, 0.76);
+    --panel-solid: #1e2330;
+    --accent: #ff8c42;
+    --accent-deep: #e67e36;
+    --accent-soft: #2d1f1a;
+    --danger: #e74c3c;
+    --ring: rgba(255, 140, 66, 0.35);
+    --line: #3a4152;
+    --ok: #27ae60;
+    --shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
+}
+
 * {
     box-sizing: border-box;
 }
@@ -33,6 +49,14 @@ body {
         radial-gradient(circle at 88% 16%, #ffd7c4 0, #ffd7c4 16%, transparent 45%),
         linear-gradient(160deg, #f5ecdf 0%, #fbe7d9 42%, #f6e5ce 100%);
     overflow-x: hidden;
+    transition: background 0.3s ease;
+}
+
+[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at 14% 12%, #2a1f1a 0, #2a1f1a 18%, transparent 44%),
+        radial-gradient(circle at 88% 16%, #1f1a2a 0, #1f1a2a 16%, transparent 45%),
+        linear-gradient(160deg, #1a1f2e 0%, #1e2330 42%, #1a1f2e 100%);
 }
 
 .bg-shape {
@@ -83,6 +107,47 @@ body {
     flex-wrap: wrap;
     gap: 1.2rem;
     justify-content: space-between;
+}
+
+.header-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 1rem;
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+}
+
+.theme-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--panel-solid);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 12px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.theme-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.theme-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.theme-btn:hover .theme-icon {
+    transform: scale(1.1);
 }
 
 .eyebrow {
@@ -147,10 +212,10 @@ h1 {
 .workflow-note {
     margin: 0 0 0.9rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid #eed9c6;
-    background: #fff8ef;
+    border: 1px solid var(--line);
+    background: var(--panel-solid);
     border-radius: 10px;
-    color: #65412a;
+    color: var(--muted);
     font-size: 0.84rem;
 }
 
@@ -173,7 +238,7 @@ select {
     padding: 0.7rem 0.78rem;
     font: inherit;
     color: var(--ink);
-    background: #fff;
+    background: var(--panel-solid);
     outline: none;
 }
 
@@ -204,7 +269,7 @@ button:focus-visible {
 }
 
 .btn-filter {
-    background: #fff;
+    background: var(--panel-solid);
     color: var(--ink);
     border-color: var(--line);
     min-width: 66px;
@@ -224,7 +289,7 @@ button:focus-visible {
 }
 
 .btn-category {
-    background: #fff;
+    background: var(--panel-solid);
     color: var(--ink);
     border-color: var(--line);
     min-width: 80px;
@@ -244,21 +309,21 @@ button:focus-visible {
 }
 
 .btn-danger {
-    background: #fff;
-    border-color: #e8c4c1;
+    background: var(--panel-solid);
+    border-color: var(--danger);
     color: var(--danger);
 }
 
 .btn-secondary {
-    background: #fff;
-    border-color: #d9c4b4;
-    color: #68442d;
+    background: var(--panel-solid);
+    border-color: var(--line);
+    color: var(--ink);
 }
 
 .btn-ghost {
-    background: #fff;
+    background: var(--panel-solid);
     border-color: var(--line);
-    color: #273138;
+    color: var(--ink);
     padding: 0.42rem 0.56rem;
     border-radius: 10px;
     font-size: 0.84rem;
@@ -381,9 +446,9 @@ button:focus-visible {
     width: 1.2rem;
     height: 1.2rem;
     border-radius: 6px;
-    border: 2px solid #d4bca6;
+    border: 2px solid var(--line);
     position: relative;
-    background: #fff;
+    background: var(--panel-solid);
 }
 
 .task-check:checked+.check-indicator {
@@ -404,7 +469,7 @@ button:focus-visible {
 }
 
 .task-controls {
-    border-top: 1px dashed #ebd8c8;
+    border-top: 1px dashed var(--line);
     padding-top: 0.58rem;
     display: flex;
     gap: 0.55rem;
@@ -428,8 +493,8 @@ button:focus-visible {
 }
 
 .empty-state {
-    border: 1px dashed #e7ccb6;
-    background: #fffaf1;
+    border: 1px dashed var(--line);
+    background: var(--panel-solid);
     border-radius: 14px;
     padding: 1rem;
     text-align: center;
@@ -518,7 +583,7 @@ button:focus-visible {
 }
 
 .btn-view {
-    background: #fff;
+    background: var(--panel-solid);
     color: var(--ink);
     border-color: var(--line);
     min-width: 100px;
@@ -702,12 +767,12 @@ button:focus-visible {
 
 .task-item.overdue {
     border-left: 4px solid var(--danger);
-    background: #fff5f5;
+    background: var(--panel-solid);
 }
 
 .task-item.overdue:hover {
-    background: #ffeded;
-    border-left-color: #d32f2f;
+    background: var(--accent-soft);
+    border-left-color: var(--danger);
 }
 
 .overdue-badge {

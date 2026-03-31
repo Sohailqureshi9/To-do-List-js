@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'taskflow-v1';
 const ARCHIVE_STORAGE_KEY = 'taskflow-archive-v1';
+const THEME_STORAGE_KEY = 'taskflow-theme';
 
 const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task-input');
@@ -31,6 +32,7 @@ const exportPdfButton = document.getElementById('export-pdf');
 const importTasksButton = document.getElementById('import-tasks');
 const importFileInput = document.getElementById('import-file');
 const taskTemplate = document.getElementById('task-template');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
 
 const totalTasksElement = document.getElementById('total-tasks');
 const completedTasksElement = document.getElementById('completed-tasks');
@@ -194,6 +196,34 @@ function loadState() {
         dependencyId: task.dependencyId && taskIds.has(task.dependencyId) ? task.dependencyId : null
     }));
 }
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    applyTheme(theme);
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggleBtn.querySelector('.theme-icon').textContent = '☀️';
+        themeToggleBtn.querySelector('.theme-text').textContent = 'Light';
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggleBtn.querySelector('.theme-icon').textContent = '🌙';
+        themeToggleBtn.querySelector('.theme-text').textContent = 'Dark';
+    }
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+}
+
+themeToggleBtn.addEventListener('click', toggleTheme);
 
 function getVisibleTasks() {
     const query = state.query.trim().toLowerCase();
@@ -1148,12 +1178,6 @@ importFileInput.addEventListener('change', async (event) => {
     importFileInput.value = '';
 });
 
-loadState();
-refreshDependencyOptions();
-renderTasks();
-updateStats();
-
-// Set minimum date to today for date input
 const today = new Date().toISOString().split('T')[0];
 dateInput.setAttribute('min', today);
 
@@ -1161,3 +1185,8 @@ setInterval(() => {
     updateLiveTimers();
     updateOverdueStatus();
 }, 1000);
+
+loadState();
+loadTheme();
+renderTasks();
+updateStats();

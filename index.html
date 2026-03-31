@@ -20,10 +20,18 @@
 
     <main class="app-shell">
         <header class="app-header card reveal">
-            <div>
-                <p class="eyebrow">Productive Every Day</p>
-                <h1>TaskFlow</h1>
-                <p class="subtitle">Plan work, track time, and finish tasks faster.</p>
+            <div class="header-main">
+                <div>
+                    <p class="eyebrow">Productive Every Day</p>
+                    <h1>TaskFlow</h1>
+                    <p class="subtitle">Plan work, track time, and finish tasks faster.</p>
+                </div>
+                <div class="theme-toggle">
+                    <button id="theme-toggle-btn" class="btn btn-ghost theme-btn" type="button" aria-label="Toggle dark mode">
+                        <span class="theme-icon">🌙</span>
+                        <span class="theme-text">Dark</span>
+                    </button>
+                </div>
             </div>
             <div class="stats-grid" id="stats-grid" aria-live="polite">
                 <div class="stat-item">
