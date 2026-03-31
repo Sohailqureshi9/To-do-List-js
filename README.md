@@ -1,76 +1,117 @@
-# TaskFlow - To-Do App with Task Timers
+# SheenTaskFlow
 
-TaskFlow is a complete and fully working to-do project built with HTML, CSS, and JavaScript.
-It supports task management, per-task timer tracking, filters, search, and local persistence.
+SheenTaskFlow is a modern, browser-based to-do and time-tracking application built with HTML, CSS, and JavaScript.
 
-## Features
+It helps you plan tasks, manage dependencies, track time per task, and monitor productivity with a clean dashboard.
 
-- Add tasks with title, priority, and optional due date
-- Mark tasks as completed or active
-- Start, pause, and reset a timer for each task
-- Edit existing task title, priority, and due date
-- Drag-and-drop reorder tasks
-- Export tasks to JSON backup
-- Export task report to PDF
-- Import tasks from JSON backup
-- Persistent data using `localStorage` (tasks and timer state survive refresh)
-- Filter by all, active, completed
-- Search tasks by keyword
-- Dashboard stats:
-  - Total tasks
-  - Completed tasks
-  - Running timers
-  - Time tracked today
-- Clear completed tasks into archive storage (not permanently deleted)
-- Responsive UI for desktop and mobile
+## Project Info
 
-## Performance and Efficiency
+- Project Name: SheenTaskFlow
+- Developed By: Sohail Qureshi
+- Type: Frontend web app (no backend required)
 
-- Uses event delegation for task actions instead of attaching listeners per item
-- Uses debounced search input to avoid unnecessary renders
-- Updates timer text every second without full list re-rendering
-- Renders with `DocumentFragment` for cleaner, faster DOM updates
+## Core Features
+
+- Create tasks with:
+  - title
+  - description
+  - priority (low, medium, high)
+  - due date
+  - category
+  - dependency
+- Edit and delete tasks
+- Mark tasks complete and clear completed tasks
+- Archive completed tasks for history
+- Per-task timer with start, pause, and reset
+- Workflow lock:
+  - only one independent task can run at a time
+  - dependent tasks can run only if their parent task is currently running
+- Link a task to the task above in one click
+- Search tasks by text
+- Filter tasks by status (all, active, done)
+- Filter tasks by category
+- List view and calendar view
+- Pagination for large task lists
+- Overdue task detection and visual badges
+- Real-time stats:
+  - total tasks
+  - completed tasks
+  - running timers
+  - overdue tasks
+  - time tracked today
+- Import tasks from JSON
+- Export tasks to JSON
+- Export report to PDF
+- Light and dark theme toggle
+- In-app notifications and browser notifications
+- Local persistence so data remains after refresh
+- Responsive design for desktop and mobile
+
+## Tech Stack
+
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- jsPDF (CDN)
+- Browser Local Storage API
 
 ## Project Structure
 
-- `index.html` - App structure and components
-- `style.css` - Full responsive UI styling
-- `script.js` - All app logic and state management
-- `images/` - Optional image assets
+- index.html: App layout and UI structure
+- style.css: App styling, themes, responsiveness, and animations
+- script.js: Task state, timers, rendering, filters, import/export, notifications
+- images/: Icons and image assets
 
-## How to Run Locally
+## How To Run
 
 1. Open the project folder in VS Code.
-2. Open `index.html` directly in a browser
-3. Recommended: use Live Server extension in VS Code for better dev workflow.
+2. Open index.html in your browser.
+3. Optional: use Live Server in VS Code for faster development workflow.
 
-## Deploy / Upload as Real Project
+## How Data Is Stored
 
-You can deploy this app on any static hosting service:
+- Active tasks are saved in browser local storage.
+- Archived completed tasks are saved separately in local storage.
+- Theme preference is also saved in local storage.
+
+If browser storage is cleared, saved tasks and settings will be removed.
+
+## Usage Flow
+
+1. Add a task with desired details.
+2. Optionally set dependency on an existing task.
+3. Start timer on the task you are working on.
+4. Mark task done when finished.
+5. Use filters, category buttons, or search to quickly find tasks.
+6. Switch to calendar view to see due dates visually.
+7. Export JSON or PDF for backup/reporting.
+
+## Deployment
+
+This is a static frontend project, so you can deploy it on:
 
 - GitHub Pages
 - Netlify
-- Vercel (static deploy)
+- Vercel
 - Cloudflare Pages
 
-### Quick Deploy with GitHub Pages
+### Quick GitHub Pages Steps
 
-1. Push this folder to a GitHub repository.
-2. Go to **Settings > Pages**.
-3. Set source to **Deploy from a branch**.
-4. Choose branch `main` and folder `/ (root)`.
-5. Save and wait for publish.
+1. Push this project to a GitHub repository.
+2. Open repository settings.
+3. Go to Pages.
+4. Select deploy from branch.
+5. Choose main branch and root folder.
+6. Save and wait for deployment.
 
-Your app will be live on a public URL.
+## Future Enhancements
 
-## Notes
+- User accounts and cloud sync
+- Team collaboration and shared boards
+- Advanced analytics dashboards
+- Recurring tasks and reminders
+- PWA support for installable offline experience
 
-- Task data is stored in browser `localStorage`.
-- Completed tasks removed from the main list are kept in archive storage.
-- If you clear site storage, task history will be removed.
+## Author
 
-## Future Improvements
-
-- Dark mode toggle
-- Optional cloud sync with account login
-- Multiple task boards (work, personal, study)
+Developed by Sohail Qureshi.
