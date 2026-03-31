@@ -510,3 +510,131 @@ button:focus-visible {
         padding: 0.85rem;
     }
 }
+
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.btn-view {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--line);
+    min-width: 100px;
+}
+
+.btn-view:hover {
+    background: var(--accent-soft);
+    border-color: #f0c8b2;
+    color: var(--accent-deep);
+}
+
+.btn-view.is-active {
+    background: var(--accent-soft);
+    border-color: #f0c8b2;
+    color: var(--accent-deep);
+}
+
+.calendar-container {
+    background: var(--panel-solid);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.calendar-header h3 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.calendar-grid {
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--accent-soft);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.calendar-weekdays div {
+    padding: 0.75rem;
+    text-align: center;
+    border-right: 1px solid var(--line);
+}
+
+.calendar-weekdays div:last-child {
+    border-right: none;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-day {
+    min-height: 80px;
+    padding: 0.5rem;
+    border-right: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+    position: relative;
+}
+
+.calendar-day:nth-child(7n) {
+    border-right: none;
+}
+
+.calendar-day.other-month {
+    background: var(--panel);
+    color: var(--muted);
+}
+
+.calendar-day.today {
+    background: var(--accent-soft);
+}
+
+.calendar-day-number {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.calendar-tasks {
+    font-size: 0.75rem;
+}
+
+.calendar-task {
+    background: var(--accent);
+    color: white;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.calendar-task.priority-high {
+    background: var(--danger);
+}
+
+.calendar-task.priority-medium {
+    background: var(--accent);
+}
+
+.calendar-task.priority-low {
+    background: var(--ok);
+}

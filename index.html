@@ -92,6 +92,10 @@
                 <div class="search-wrap">
                     <input type="search" id="search-input" placeholder="Search tasks..." aria-label="Search tasks">
                 </div>
+                <div class="view-toggle">
+                    <button id="list-view-btn" class="btn btn-view is-active" data-view="list" type="button">List View</button>
+                    <button id="calendar-view-btn" class="btn btn-view" data-view="calendar" type="button">Calendar View</button>
+                </div>
                 <div class="filters" role="group" aria-label="Task filters">
                     <button class="btn btn-filter is-active" data-filter="all" type="button">All</button>
                     <button class="btn btn-filter" data-filter="active" type="button">Active</button>
@@ -109,6 +113,26 @@
             </div>
 
             <ul id="task-list" class="task-list" aria-live="polite"></ul>
+
+            <div id="calendar-container" class="calendar-container hidden">
+                <div class="calendar-header">
+                    <button id="calendar-prev" class="btn btn-ghost" type="button">‹</button>
+                    <h3 id="calendar-month-year"></h3>
+                    <button id="calendar-next" class="btn btn-ghost" type="button">›</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-weekdays">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+                    <div id="calendar-days" class="calendar-days"></div>
+                </div>
+            </div>
 
             <div id="empty-state" class="empty-state">
                 <h2>No tasks found</h2>

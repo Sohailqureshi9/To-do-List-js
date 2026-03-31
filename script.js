@@ -11,6 +11,13 @@ const searchInput = document.getElementById('search-input');
 const filterButtons = document.querySelectorAll('.btn-filter');
 const categoryButtons = document.querySelectorAll('.btn-category');
 const cancelEditButton = document.getElementById('cancel-edit');
+const listViewBtn = document.getElementById('list-view-btn');
+const calendarViewBtn = document.getElementById('calendar-view-btn');
+const calendarContainer = document.getElementById('calendar-container');
+const calendarDays = document.getElementById('calendar-days');
+const calendarMonthYear = document.getElementById('calendar-month-year');
+const calendarPrevBtn = document.getElementById('calendar-prev');
+const calendarNextBtn = document.getElementById('calendar-next');
 const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
 const clearCompletedButton = document.getElementById('clear-completed');
@@ -33,7 +40,9 @@ let state = {
     filter: 'all',
     category: 'all',
     query: '',
-    editingTaskId: null
+    editingTaskId: null,
+    currentView: 'list',
+    calendarDate: new Date()
 };
 
 let dragTaskId = null;
@@ -269,6 +278,11 @@ function updateStats() {
 }
 
 function renderTasks() {
+    if (state.currentView === 'calendar') {
+        renderCalendar();
+        return;
+    }
+    
     const visibleTasks = getVisibleTasks();
     const fragment = document.createDocumentFragment();
 
@@ -594,6 +608,118 @@ function setCategory(nextCategory) {
     renderTasks();
 }
 
+function setView(viewType) {
+    state.currentView = viewType;
+    listViewBtn.classList.toggle('is-active', viewType === 'list');
+    calendarViewBtn.classList.toggle('is-active', viewType === 'calendar');
+    taskList.classList.toggle('hidden', viewType === 'calendar');
+    calendarContainer.classList.toggle('hidden', viewType === 'list');
+    
+    if (viewType === 'calendar') {
+        renderCalendar();
+    } else {
+        renderTasks();
+    }
+}
+
+function renderCalendar() {
+    const year = state.calendarDate.getFullYear();
+    const month = state.calendarDate.getMonth();
+    
+    // Update month/year display
+    calendarMonthYear.textContent = new Date(year, month).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+    });
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    // Clear calendar days
+    calendarDays.innerHTML = '';
+    
+    // Add previous month's trailing days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const day = daysInPrevMonth - i;
+        const dayElement = createCalendarDay(day, true, new Date(year, month - 1, day));
+        calendarDays.appendChild(dayElement);
+    }
+    
+    // Add current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayElement = createCalendarDay(day, false, new Date(year, month, day));
+        calendarDays.appendChild(dayElement);
+    }
+    
+    // Add next month's leading days
+    const totalCells = calendarDays.children.length;
+    const remainingCells = 42 - totalCells; // 6 weeks * 7 days
+    for (let day = 1; day <= remainingCells; day++) {
+        const dayElement = createCalendarDay(day, true, new Date(year, month + 1, day));
+        calendarDays.appendChild(dayElement);
+    }
+}
+
+function createCalendarDay(day, isOtherMonth, date) {
+    const dayElement = document.createElement('div');
+    dayElement.className = 'calendar-day';
+    if (isOtherMonth) {
+        dayElement.classList.add('other-month');
+    }
+    
+    // Check if today
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+        dayElement.classList.add('today');
+    }
+    
+    // Add day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.textContent = day;
+    dayElement.appendChild(dayNumber);
+    
+    // Add tasks for this day
+    const tasksContainer = document.createElement('div');
+    tasksContainer.className = 'calendar-tasks';
+    
+    const visibleTasks = getVisibleTasks();
+    const dayTasks = visibleTasks.filter(task => {
+        if (!task.dueDate) return false;
+        const taskDate = new Date(`${task.dueDate}T00:00:00`);
+        return taskDate.toDateString() === date.toDateString();
+    });
+    
+    dayTasks.forEach(task => {
+        const taskElement = document.createElement('div');
+        taskElement.className = `calendar-task priority-${task.priority}`;
+        taskElement.textContent = task.title;
+        taskElement.title = task.title;
+        taskElement.addEventListener('click', () => startEditTask(task.id));
+        tasksContainer.appendChild(taskElement);
+    });
+    
+    dayElement.appendChild(tasksContainer);
+    return dayElement;
+}
+
+function changeCalendarMonth(direction) {
+    const newMonth = state.calendarDate.getMonth() + direction;
+    const newYear = state.calendarDate.getFullYear();
+    
+    if (newMonth < 0) {
+        state.calendarDate = new Date(newYear - 1, 11, 1);
+    } else if (newMonth > 11) {
+        state.calendarDate = new Date(newYear + 1, 0, 1);
+    } else {
+        state.calendarDate = new Date(newYear, newMonth, 1);
+    }
+    
+    renderCalendar();
+}
+
 function reorderTasks(dragId, dropId) {
     const visibleIds = getVisibleTasks().map((task) => task.id);
     if (!visibleIds.includes(dragId) || !visibleIds.includes(dropId)) {
@@ -828,6 +954,11 @@ filterButtons.forEach((button) => {
 categoryButtons.forEach((button) => {
     button.addEventListener('click', () => setCategory(button.dataset.category));
 });
+
+listViewBtn.addEventListener('click', () => setView('list'));
+calendarViewBtn.addEventListener('click', () => setView('calendar'));
+calendarPrevBtn.addEventListener('click', () => changeCalendarMonth(-1));
+calendarNextBtn.addEventListener('click', () => changeCalendarMonth(1));
 
 taskList.addEventListener('click', handleListClick);
 taskList.addEventListener('change', handleListChange);
