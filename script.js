@@ -33,6 +33,7 @@ const importTasksButton = document.getElementById('import-tasks');
 const importFileInput = document.getElementById('import-file');
 const taskTemplate = document.getElementById('task-template');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const notificationContainer = document.getElementById('notification-container');
 
 const totalTasksElement = document.getElementById('total-tasks');
 const completedTasksElement = document.getElementById('completed-tasks');
@@ -150,6 +151,158 @@ function isPastDate(dateString) {
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(`${dateString}T00:00:00`);
     return selectedDate < today;
+}
+
+function showNotification(title, message, type = 'info', duration = 5000) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    notification.innerHTML = `
+        <div class="notification-header">
+            <span class="notification-icon">${icons[type]}</span>
+            <span class="notification-title">${title}</span>
+            <button class="notification-close" aria-label="Close notification">×</button>
+        </div>
+        <div class="notification-message">${message}</div>
+    `;
+    
+    notificationContainer.appendChild(notification);
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+        notification.classList.add('show');
+    });
+    
+    // Close button functionality
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.addEventListener('click', () => {
+        hideNotification(notification);
+    });
+    
+    // Auto-hide after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            hideNotification(notification);
+        }, duration);
+    }
+    
+    return notification;
+}
+
+function hideNotification(notification) {
+    if (!notification || !notification.parentNode) {
+        return;
+    }
+    
+    notification.classList.add('hide');
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 300);
+}
+
+function requestNotificationPermission() {
+    if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    showNotification('Browser Notifications Enabled', 'You will receive browser notifications for important task events.', 'success');
+                }
+            });
+        }
+    }
+}
+
+function showBrowserNotification(title, message, options = {}) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        const notification = new Notification(title, {
+            body: message,
+            icon: 'images/icon.png',
+            badge: 'images/icon.png',
+            tag: 'taskflow',
+            ...options
+        });
+        
+        notification.onclick = function() {
+            window.focus();
+            notification.close();
+        };
+        
+        setTimeout(() => {
+            notification.close();
+        }, 5000);
+    }
+}
+
+function notifyTaskCreated(task) {
+    const title = 'Task Created';
+    const message = `"${task.title}" has been added to your tasks.`;
+    
+    showNotification(title, message, 'success');
+    showBrowserNotification(title, message);
+}
+
+function notifyTaskCompleted(task) {
+    const title = 'Task Completed';
+    const message = `Congratulations! You completed "${task.title}".`;
+    
+    showNotification(title, message, 'success');
+    showBrowserNotification(title, message);
+}
+
+function notifyTaskDeleted(task) {
+    const title = 'Task Deleted';
+    const message = `"${task.title}" has been removed from your tasks.`;
+    
+    showNotification(title, message, 'info');
+    showBrowserNotification(title, message);
+}
+
+function notifyTaskOverdue(task) {
+    const title = 'Task Overdue';
+    const message = `"${task.title}" is overdue! Please complete it soon.`;
+    
+    showNotification(title, message, 'warning');
+    showBrowserNotification(title, message, { urgency: 'high' });
+}
+
+function notifyTimerStarted(task) {
+    const title = 'Timer Started';
+    const message = `Timer started for "${task.title}".`;
+    
+    showNotification(title, message, 'info');
+}
+
+function notifyTimerStopped(task) {
+    const elapsed = formatDuration(getElapsedMs(task));
+    const title = 'Timer Stopped';
+    const message = `Timer stopped for "${task.title}". Total time: ${elapsed}`;
+    
+    showNotification(title, message, 'info');
+}
+
+function checkOverdueTasks() {
+    const overdueTasks = state.tasks.filter(task => isOverdue(task) && !task.completed);
+    const newlyOverdue = overdueTasks.filter(task => {
+        // Check if this task became overdue recently (within the last minute)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(`${task.dueDate}T00:00:00`);
+        const daysDiff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+        return daysDiff === 0; // Just became today
+    });
+    
+    newlyOverdue.forEach(task => {
+        notifyTaskOverdue(task);
+    });
 }
 
 function saveState() {
@@ -481,7 +634,9 @@ function addOrUpdateTask(event) {
             };
         }
     } else {
-        state.tasks.unshift(createTask(title, priority, dueDate, dependencyId, category));
+        const newTask = createTask(title, priority, dueDate, dependencyId, category);
+        state.tasks.unshift(newTask);
+        notifyTaskCreated(newTask);
     }
 
     taskForm.reset();
@@ -496,6 +651,7 @@ function addOrUpdateTask(event) {
 }
 
 function deleteTask(taskId) {
+    const taskToDelete = getTaskById(taskId);
     state.tasks = state.tasks.filter((task) => task.id !== taskId);
     state.tasks = state.tasks.map((task) => {
         if (task.dependencyId === taskId) {
@@ -512,6 +668,9 @@ function deleteTask(taskId) {
         priorityInput.value = 'medium';
         dependencyInput.value = '';
         categoryInput.value = '';
+    }
+    if (taskToDelete) {
+        notifyTaskDeleted(taskToDelete);
     }
     saveState();
     refreshDependencyOptions();
@@ -533,6 +692,10 @@ function toggleTaskComplete(taskId, isComplete) {
         accumulatedMs: isComplete ? getElapsedMs(task) : task.accumulatedMs,
         startedAt: isComplete ? null : task.startedAt
     };
+
+    if (isComplete) {
+        notifyTaskCompleted(state.tasks[index]);
+    }
 
     saveState();
     renderTasks();
@@ -557,6 +720,7 @@ function toggleTimer(taskId) {
             accumulatedMs: getElapsedMs(task),
             startedAt: null
         };
+        notifyTimerStopped(state.tasks[index]);
     } else {
         const startGuard = canStartTask(task);
         if (!startGuard.allowed) {
@@ -569,6 +733,7 @@ function toggleTimer(taskId) {
             isRunning: true,
             startedAt: Date.now()
         };
+        notifyTimerStarted(state.tasks[index]);
     }
 
     saveState();
@@ -1184,9 +1349,14 @@ dateInput.setAttribute('min', today);
 setInterval(() => {
     updateLiveTimers();
     updateOverdueStatus();
+    checkOverdueTasks();
 }, 1000);
 
 loadState();
 loadTheme();
 renderTasks();
 updateStats();
+
+// Initialize notifications
+requestNotificationPermission();
+checkOverdueTasks();
