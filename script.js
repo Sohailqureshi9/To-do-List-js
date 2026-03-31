@@ -6,8 +6,10 @@ const taskInput = document.getElementById('task-input');
 const priorityInput = document.getElementById('task-priority');
 const dateInput = document.getElementById('task-date');
 const dependencyInput = document.getElementById('task-dependency');
+const categoryInput = document.getElementById('task-category');
 const searchInput = document.getElementById('search-input');
 const filterButtons = document.querySelectorAll('.btn-filter');
+const categoryButtons = document.querySelectorAll('.btn-category');
 const cancelEditButton = document.getElementById('cancel-edit');
 const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
@@ -29,6 +31,7 @@ let state = {
     tasks: [],
     archivedTasks: [],
     filter: 'all',
+    category: 'all',
     query: '',
     editingTaskId: null
 };
@@ -43,13 +46,14 @@ function makeId() {
     return `task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createTask(title, priority, dueDate, dependencyId) {
+function createTask(title, priority, dueDate, dependencyId, category) {
     return {
         id: makeId(),
         title,
         priority,
         dueDate: dueDate || null,
         dependencyId: dependencyId || null,
+        category: category || null,
         completed: false,
         createdAt: Date.now(),
         accumulatedMs: 0,
@@ -65,6 +69,7 @@ function normalizeTask(task) {
         priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
         dueDate: task.dueDate || null,
         dependencyId: task.dependencyId || null,
+        category: task.category || null,
         completed: Boolean(task.completed),
         createdAt: Number(task.createdAt) || Date.now(),
         accumulatedMs: Number(task.accumulatedMs) || 0,
@@ -182,9 +187,13 @@ function getVisibleTasks() {
             (state.filter === 'active' && !task.completed) ||
             (state.filter === 'completed' && task.completed);
 
+        const matchesCategory =
+            state.category === 'all' ||
+            task.category === state.category;
+
         const matchesQuery = task.title.toLowerCase().includes(query);
 
-        return matchesFilter && matchesQuery;
+        return matchesFilter && matchesCategory && matchesQuery;
     });
 }
 
@@ -286,7 +295,8 @@ function renderTasks() {
         const dueDateText = formatDate(task.dueDate);
         const overdueText = isOverdue(task) ? 'Overdue' : 'On schedule';
         const dependencyText = getDependencyLabel(task);
-        meta.innerHTML = `<span>Due: ${dueDateText}</span><span>${overdueText}</span><span>${dependencyText}</span>`;
+        const categoryText = task.category ? task.category.charAt(0).toUpperCase() + task.category.slice(1) : 'No category';
+        meta.innerHTML = `<span>Due: ${dueDateText}</span><span>${overdueText}</span><span>${dependencyText}</span><span>Category: ${categoryText}</span>`;
 
         timerDisplay.textContent = formatDuration(getElapsedMs(task));
         startPauseButton.textContent = task.isRunning ? 'Pause' : 'Start';
@@ -346,6 +356,7 @@ function startEditTask(taskId) {
     taskInput.value = task.title;
     priorityInput.value = task.priority;
     dateInput.value = task.dueDate || '';
+    categoryInput.value = task.category || '';
     setEditingMode(taskId);
     dependencyInput.value = task.dependencyId || '';
     taskInput.focus();
@@ -362,6 +373,7 @@ function addOrUpdateTask(event) {
 
     const priority = priorityInput.value;
     const dueDate = dateInput.value || null;
+    const category = categoryInput.value || null;
     
     // Validate that due date is not in the past
     if (dueDate && isPastDate(dueDate)) {
@@ -385,16 +397,18 @@ function addOrUpdateTask(event) {
                 title,
                 priority,
                 dueDate,
-                dependencyId
+                dependencyId,
+                category
             };
         }
     } else {
-        state.tasks.unshift(createTask(title, priority, dueDate, dependencyId));
+        state.tasks.unshift(createTask(title, priority, dueDate, dependencyId, category));
     }
 
     taskForm.reset();
     priorityInput.value = 'medium';
     dependencyInput.value = '';
+    categoryInput.value = '';
     clearEditingMode();
 
     saveState();
@@ -418,6 +432,7 @@ function deleteTask(taskId) {
         taskForm.reset();
         priorityInput.value = 'medium';
         dependencyInput.value = '';
+        categoryInput.value = '';
     }
     saveState();
     refreshDependencyOptions();
@@ -567,6 +582,14 @@ function setFilter(nextFilter) {
     state.filter = nextFilter;
     filterButtons.forEach((button) => {
         button.classList.toggle('is-active', button.dataset.filter === nextFilter);
+    });
+    renderTasks();
+}
+
+function setCategory(nextCategory) {
+    state.category = nextCategory;
+    categoryButtons.forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.category === nextCategory);
     });
     renderTasks();
 }
@@ -800,6 +823,10 @@ searchInput.addEventListener('input', (event) => {
 
 filterButtons.forEach((button) => {
     button.addEventListener('click', () => setFilter(button.dataset.filter));
+});
+
+categoryButtons.forEach((button) => {
+    button.addEventListener('click', () => setCategory(button.dataset.category));
 });
 
 taskList.addEventListener('click', handleListClick);

@@ -216,6 +216,33 @@ button:focus-visible {
     color: var(--accent-deep);
 }
 
+.category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn-category {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--line);
+    min-width: 80px;
+    font-size: 0.875rem;
+}
+
+.btn-category:hover {
+    background: var(--accent-soft);
+    border-color: #f0c8b2;
+    color: var(--accent-deep);
+}
+
+.btn-category.is-active {
+    background: var(--accent-soft);
+    border-color: #f0c8b2;
+    color: var(--accent-deep);
+}
+
 .btn-danger {
     background: #fff;
     border-color: #e8c4c1;

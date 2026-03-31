@@ -70,6 +70,18 @@
                         <option value="">No dependency</option>
                     </select>
                 </div>
+                <div class="field-wrap small">
+                    <label for="task-category">Category</label>
+                    <select id="task-category" name="category">
+                        <option value="">No category</option>
+                        <option value="work">Work</option>
+                        <option value="personal">Personal</option>
+                        <option value="shopping">Shopping</option>
+                        <option value="health">Health</option>
+                        <option value="education">Education</option>
+                        <option value="finance">Finance</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-primary">Add Task</button>
                 <button id="cancel-edit" type="button" class="btn btn-secondary hidden">Cancel Edit</button>
             </form>
@@ -84,6 +96,15 @@
                     <button class="btn btn-filter is-active" data-filter="all" type="button">All</button>
                     <button class="btn btn-filter" data-filter="active" type="button">Active</button>
                     <button class="btn btn-filter" data-filter="completed" type="button">Done</button>
+                </div>
+                <div class="category-filters" role="group" aria-label="Category filters">
+                    <button class="btn btn-category is-active" data-category="all" type="button">All Categories</button>
+                    <button class="btn btn-category" data-category="work" type="button">Work</button>
+                    <button class="btn btn-category" data-category="personal" type="button">Personal</button>
+                    <button class="btn btn-category" data-category="shopping" type="button">Shopping</button>
+                    <button class="btn btn-category" data-category="health" type="button">Health</button>
+                    <button class="btn btn-category" data-category="education" type="button">Education</button>
+                    <button class="btn btn-category" data-category="finance" type="button">Finance</button>
                 </div>
             </div>
 
