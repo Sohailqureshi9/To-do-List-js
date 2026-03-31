@@ -18,6 +18,11 @@ const calendarDays = document.getElementById('calendar-days');
 const calendarMonthYear = document.getElementById('calendar-month-year');
 const calendarPrevBtn = document.getElementById('calendar-prev');
 const calendarNextBtn = document.getElementById('calendar-next');
+const paginationContainer = document.getElementById('pagination-container');
+const paginationText = document.getElementById('pagination-text');
+const paginationPrevBtn = document.getElementById('pagination-prev');
+const paginationNextBtn = document.getElementById('pagination-next');
+const paginationPages = document.getElementById('pagination-pages');
 const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
 const clearCompletedButton = document.getElementById('clear-completed');
@@ -42,7 +47,9 @@ let state = {
     query: '',
     editingTaskId: null,
     currentView: 'list',
-    calendarDate: new Date()
+    calendarDate: new Date(),
+    currentPage: 1,
+    tasksPerPage: 10
 };
 
 let dragTaskId = null;
@@ -277,16 +284,23 @@ function updateStats() {
     timeTodayElement.textContent = formatDuration(timeToday);
 }
 
+function getPaginatedTasks() {
+    const visibleTasks = getVisibleTasks();
+    const startIndex = (state.currentPage - 1) * state.tasksPerPage;
+    const endIndex = startIndex + state.tasksPerPage;
+    return visibleTasks.slice(startIndex, endIndex);
+}
+
 function renderTasks() {
     if (state.currentView === 'calendar') {
         renderCalendar();
         return;
     }
     
-    const visibleTasks = getVisibleTasks();
+    const paginatedTasks = getPaginatedTasks();
     const fragment = document.createDocumentFragment();
 
-    visibleTasks.forEach((task) => {
+    paginatedTasks.forEach((task) => {
         const clone = taskTemplate.content.cloneNode(true);
         const item = clone.querySelector('.task-item');
         const check = clone.querySelector('.task-check');
@@ -324,7 +338,8 @@ function renderTasks() {
 
     taskList.innerHTML = '';
     taskList.appendChild(fragment);
-    emptyState.classList.toggle('hidden', visibleTasks.length > 0);
+    emptyState.classList.toggle('hidden', paginatedTasks.length > 0);
+    renderPagination();
 }
 
 function updateLiveTimers() {
@@ -594,6 +609,7 @@ function clearCompleted() {
 
 function setFilter(nextFilter) {
     state.filter = nextFilter;
+    state.currentPage = 1; // Reset to first page when filter changes
     filterButtons.forEach((button) => {
         button.classList.toggle('is-active', button.dataset.filter === nextFilter);
     });
@@ -602,6 +618,7 @@ function setFilter(nextFilter) {
 
 function setCategory(nextCategory) {
     state.category = nextCategory;
+    state.currentPage = 1; // Reset to first page when category changes
     categoryButtons.forEach((button) => {
         button.classList.toggle('is-active', button.dataset.category === nextCategory);
     });
@@ -718,6 +735,90 @@ function changeCalendarMonth(direction) {
     }
     
     renderCalendar();
+}
+
+function getPaginatedTasks() {
+    const visibleTasks = getVisibleTasks();
+    const startIndex = (state.currentPage - 1) * state.tasksPerPage;
+    const endIndex = startIndex + state.tasksPerPage;
+    return visibleTasks.slice(startIndex, endIndex);
+}
+
+function getTotalPages() {
+    const visibleTasks = getVisibleTasks();
+    return Math.ceil(visibleTasks.length / state.tasksPerPage);
+}
+
+function setPage(page) {
+    const totalPages = getTotalPages();
+    if (page < 1 || page > totalPages) {
+        return;
+    }
+    state.currentPage = page;
+    renderTasks();
+    renderPagination();
+}
+
+function renderPagination() {
+    const visibleTasks = getVisibleTasks();
+    const totalPages = getTotalPages();
+    
+    if (totalPages <= 1 || state.currentView === 'calendar') {
+        paginationContainer.classList.add('hidden');
+        return;
+    }
+    
+    paginationContainer.classList.remove('hidden');
+    
+    // Update pagination info
+    const startItem = (state.currentPage - 1) * state.tasksPerPage + 1;
+    const endItem = Math.min(state.currentPage * state.tasksPerPage, visibleTasks.length);
+    paginationText.textContent = `Showing ${startItem}-${endItem} of ${visibleTasks.length} tasks`;
+    
+    // Update prev/next buttons
+    paginationPrevBtn.disabled = state.currentPage === 1;
+    paginationNextBtn.disabled = state.currentPage === totalPages;
+    
+    // Update page buttons
+    paginationPages.innerHTML = '';
+    
+    // Show page numbers with ellipsis for many pages
+    let startPage = Math.max(1, state.currentPage - 2);
+    let endPage = Math.min(totalPages, state.currentPage + 2);
+    
+    if (startPage > 1) {
+        addPageButton(1);
+        if (startPage > 2) {
+            const ellipsis = document.createElement('span');
+            ellipsis.textContent = '...';
+            ellipsis.style.padding = '0 0.5rem';
+            paginationPages.appendChild(ellipsis);
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        addPageButton(i);
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsis = document.createElement('span');
+            ellipsis.textContent = '...';
+            ellipsis.style.padding = '0 0.5rem';
+            paginationPages.appendChild(ellipsis);
+        }
+        addPageButton(totalPages);
+    }
+}
+
+function addPageButton(pageNum) {
+    const button = document.createElement('button');
+    button.className = 'btn btn-ghost pagination-page';
+    button.textContent = pageNum;
+    button.type = 'button';
+    button.classList.toggle('is-active', pageNum === state.currentPage);
+    button.addEventListener('click', () => setPage(pageNum));
+    paginationPages.appendChild(button);
 }
 
 function reorderTasks(dragId, dropId) {
@@ -943,6 +1044,7 @@ searchInput.addEventListener('input', (event) => {
     window.clearTimeout(searchDebounce);
     searchDebounce = window.setTimeout(() => {
         state.query = nextQuery;
+        state.currentPage = 1; // Reset to first page when search changes
         renderTasks();
     }, 140);
 });
@@ -959,6 +1061,9 @@ listViewBtn.addEventListener('click', () => setView('list'));
 calendarViewBtn.addEventListener('click', () => setView('calendar'));
 calendarPrevBtn.addEventListener('click', () => changeCalendarMonth(-1));
 calendarNextBtn.addEventListener('click', () => changeCalendarMonth(1));
+
+paginationPrevBtn.addEventListener('click', () => setPage(state.currentPage - 1));
+paginationNextBtn.addEventListener('click', () => setPage(state.currentPage + 1));
 
 taskList.addEventListener('click', handleListClick);
 taskList.addEventListener('change', handleListChange);
