@@ -11,6 +11,7 @@ It supports task management, per-task timer tracking, filters, search, and local
 - Edit existing task title, priority, and due date
 - Drag-and-drop reorder tasks
 - Export tasks to JSON backup
+- Export task report to PDF
 - Import tasks from JSON backup
 - Persistent data using `localStorage` (tasks and timer state survive refresh)
 - Filter by all, active, completed
@@ -20,7 +21,7 @@ It supports task management, per-task timer tracking, filters, search, and local
   - Completed tasks
   - Running timers
   - Time tracked today
-- Clear all completed tasks
+- Clear completed tasks into archive storage (not permanently deleted)
 - Responsive UI for desktop and mobile
 
 ## Performance and Efficiency
@@ -65,6 +66,7 @@ Your app will be live on a public URL.
 ## Notes
 
 - Task data is stored in browser `localStorage`.
+- Completed tasks removed from the main list are kept in archive storage.
 - If you clear site storage, task history will be removed.
 
 ## Future Improvements

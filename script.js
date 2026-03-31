@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'taskflow-v1';
+const ARCHIVE_STORAGE_KEY = 'taskflow-archive-v1';
 
 const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task-input');
@@ -11,6 +12,7 @@ const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
 const clearCompletedButton = document.getElementById('clear-completed');
 const exportTasksButton = document.getElementById('export-tasks');
+const exportPdfButton = document.getElementById('export-pdf');
 const importTasksButton = document.getElementById('import-tasks');
 const importFileInput = document.getElementById('import-file');
 const taskTemplate = document.getElementById('task-template');
@@ -24,6 +26,7 @@ const formSubmitButton = taskForm.querySelector('button[type="submit"]');
 
 let state = {
     tasks: [],
+    archivedTasks: [],
     filter: 'all',
     query: '',
     editingTaskId: null
@@ -114,22 +117,40 @@ function isOverdue(task) {
 
 function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
+    localStorage.setItem(ARCHIVE_STORAGE_KEY, JSON.stringify(state.archivedTasks));
 }
 
 function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
+    const archivedRaw = localStorage.getItem(ARCHIVE_STORAGE_KEY);
+
     if (!raw) {
-        return;
+        state.tasks = [];
+    } else {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                state.tasks = parsed.map(normalizeTask);
+            }
+        } catch (error) {
+            console.error('Failed to parse saved tasks:', error);
+            state.tasks = [];
+        }
     }
 
     try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-            state.tasks = parsed.map(normalizeTask);
+        const parsedArchive = archivedRaw ? JSON.parse(archivedRaw) : [];
+        if (Array.isArray(parsedArchive)) {
+            state.archivedTasks = parsedArchive.map((task) => ({
+                ...normalizeTask(task),
+                clearedAt: Number(task.clearedAt) || Date.now()
+            }));
+        } else {
+            state.archivedTasks = [];
         }
     } catch (error) {
-        console.error('Failed to parse saved tasks:', error);
-        state.tasks = [];
+        console.error('Failed to parse archived tasks:', error);
+        state.archivedTasks = [];
     }
 }
 
@@ -198,7 +219,7 @@ function renderTasks() {
         timerDisplay.textContent = formatDuration(getElapsedMs(task));
         startPauseButton.textContent = task.isRunning ? 'Pause' : 'Start';
         startPauseButton.disabled = task.completed;
-        resetButton.disabled = task.isRunning;
+        resetButton.disabled = false;
 
         fragment.appendChild(clone);
     });
@@ -357,11 +378,14 @@ function resetTimer(taskId) {
         return;
     }
 
+    const task = state.tasks[index];
+    const keepRunning = task.isRunning && !task.completed;
+
     state.tasks[index] = {
-        ...state.tasks[index],
+        ...task,
         accumulatedMs: 0,
-        isRunning: false,
-        startedAt: null
+        isRunning: keepRunning,
+        startedAt: keepRunning ? Date.now() : null
     };
 
     saveState();
@@ -370,7 +394,22 @@ function resetTimer(taskId) {
 }
 
 function clearCompleted() {
+    const completed = state.tasks
+        .filter((task) => task.completed)
+        .map((task) => ({
+            ...task,
+            isRunning: false,
+            startedAt: null,
+            clearedAt: Date.now()
+        }));
+
+    if (completed.length === 0) {
+        return;
+    }
+
+    state.archivedTasks = [...completed, ...state.archivedTasks];
     state.tasks = state.tasks.filter((task) => !task.completed);
+
     saveState();
     renderTasks();
     updateStats();
@@ -416,7 +455,8 @@ function exportTasks() {
     const payload = {
         version: 1,
         exportedAt: new Date().toISOString(),
-        tasks: state.tasks
+        tasks: state.tasks,
+        archivedTasks: state.archivedTasks
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -427,6 +467,85 @@ function exportTasks() {
     anchor.download = `taskflow-${today}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
+}
+
+function exportPdf() {
+    const jsPdfFactory = window.jspdf && window.jspdf.jsPDF;
+    if (!jsPdfFactory) {
+        alert('PDF library failed to load. Please check your internet and refresh.');
+        return;
+    }
+
+    const doc = new jsPdfFactory({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    const lineHeight = 16;
+    let y = margin;
+
+    function ensureSpace(extra = lineHeight) {
+        if (y + extra > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+        }
+    }
+
+    function writeLine(text, options = {}) {
+        const size = options.size || 11;
+        const weight = options.bold ? 'bold' : 'normal';
+        const lines = doc.splitTextToSize(String(text), pageWidth - margin * 2);
+
+        doc.setFont('helvetica', weight);
+        doc.setFontSize(size);
+
+        lines.forEach((line) => {
+            ensureSpace(lineHeight);
+            doc.text(line, margin, y);
+            y += lineHeight;
+        });
+    }
+
+    const total = state.tasks.length;
+    const completed = state.tasks.filter((task) => task.completed).length;
+
+    writeLine('TaskFlow Report', { size: 18, bold: true });
+    writeLine(`Generated: ${new Date().toLocaleString()}`);
+    writeLine(`Active Tasks: ${total}`);
+    writeLine(`Completed (in active list): ${completed}`);
+    writeLine(`Archived Completed: ${state.archivedTasks.length}`);
+    y += 8;
+
+    writeLine('Current Tasks', { size: 13, bold: true });
+    if (state.tasks.length === 0) {
+        writeLine('No tasks available.');
+    } else {
+        state.tasks.forEach((task, idx) => {
+            const status = task.completed ? 'Done' : 'Pending';
+            const timer = formatDuration(getElapsedMs(task));
+            const due = formatDate(task.dueDate);
+            writeLine(`${idx + 1}. ${task.title}`, { bold: true });
+            writeLine(`   Status: ${status} | Priority: ${task.priority} | Due: ${due} | Time: ${timer}`);
+        });
+    }
+
+    y += 8;
+    writeLine('Archived Completed Tasks', { size: 13, bold: true });
+    if (state.archivedTasks.length === 0) {
+        writeLine('No archived completed tasks.');
+    } else {
+        state.archivedTasks.forEach((task, idx) => {
+            const due = formatDate(task.dueDate);
+            const timer = formatDuration(task.accumulatedMs || 0);
+            const clearedAtText = task.clearedAt
+                ? new Date(task.clearedAt).toLocaleString()
+                : 'Unknown';
+            writeLine(`${idx + 1}. ${task.title}`, { bold: true });
+            writeLine(`   Priority: ${task.priority} | Due: ${due} | Time: ${timer} | Archived: ${clearedAtText}`);
+        });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    doc.save(`taskflow-report-${today}.pdf`);
 }
 
 function importTasksFromText(text) {
@@ -445,6 +564,11 @@ function importTasksFromText(text) {
     }
 
     state.tasks = importedTasks.map(normalizeTask);
+    const importedArchived = Array.isArray(parsed.archivedTasks) ? parsed.archivedTasks : [];
+    state.archivedTasks = importedArchived.map((task) => ({
+        ...normalizeTask(task),
+        clearedAt: Number(task.clearedAt) || Date.now()
+    }));
     clearEditingMode();
     taskForm.reset();
     priorityInput.value = 'medium';
@@ -567,6 +691,7 @@ taskList.addEventListener('dragend', () => {
 clearCompletedButton.addEventListener('click', clearCompleted);
 
 exportTasksButton.addEventListener('click', exportTasks);
+exportPdfButton.addEventListener('click', exportPdf);
 importTasksButton.addEventListener('click', () => importFileInput.click());
 importFileInput.addEventListener('change', async (event) => {
     const file = event.target.files && event.target.files[0];

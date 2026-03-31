@@ -89,6 +89,7 @@
             <div class="actions-row">
                 <div class="import-export">
                     <button id="export-tasks" class="btn btn-secondary" type="button">Export JSON</button>
+                    <button id="export-pdf" class="btn btn-secondary" type="button">Export PDF</button>
                     <button id="import-tasks" class="btn btn-secondary" type="button">Import JSON</button>
                     <input type="file" id="import-file" accept="application/json" class="hidden"
                         aria-label="Import task JSON file">
@@ -125,6 +126,7 @@
         </li>
     </template>
 
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="script.js"></script>
 </body>
 
