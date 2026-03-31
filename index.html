@@ -18,6 +18,10 @@
     <div class="bg-shape bg-shape-1" aria-hidden="true"></div>
     <div class="bg-shape bg-shape-2" aria-hidden="true"></div>
 
+    <header class="site-header card reveal">
+        <p class="site-title">SheenTaskFlow</p>
+    </header>
+
     <main class="app-shell">
         <header class="app-header card reveal">
             <div class="header-main">
@@ -27,7 +31,8 @@
                     <p class="subtitle">Plan work, track time, and finish tasks faster.</p>
                 </div>
                 <div class="theme-toggle">
-                    <button id="theme-toggle-btn" class="btn btn-ghost theme-btn" type="button" aria-label="Toggle dark mode">
+                    <button id="theme-toggle-btn" class="btn btn-ghost theme-btn" type="button"
+                        aria-label="Toggle dark mode">
                         <span class="theme-icon">🌙</span>
                         <span class="theme-text">Dark</span>
                     </button>
@@ -66,7 +71,8 @@
                 </div>
                 <div class="field-wrap">
                     <label for="task-description">Description</label>
-                    <textarea id="task-description" name="description" placeholder="Add task details (optional)" rows="3" maxlength="500"></textarea>
+                    <textarea id="task-description" name="description" placeholder="Add task details (optional)"
+                        rows="3" maxlength="500"></textarea>
                 </div>
                 <div class="field-wrap small">
                     <label for="task-priority">Priority</label>
@@ -109,8 +115,10 @@
                     <input type="search" id="search-input" placeholder="Search tasks..." aria-label="Search tasks">
                 </div>
                 <div class="view-toggle">
-                    <button id="list-view-btn" class="btn btn-view is-active" data-view="list" type="button">List View</button>
-                    <button id="calendar-view-btn" class="btn btn-view" data-view="calendar" type="button">Calendar View</button>
+                    <button id="list-view-btn" class="btn btn-view is-active" data-view="list" type="button">List
+                        View</button>
+                    <button id="calendar-view-btn" class="btn btn-view" data-view="calendar" type="button">Calendar
+                        View</button>
                 </div>
                 <div class="filters" role="group" aria-label="Task filters">
                     <button class="btn btn-filter is-active" data-filter="all" type="button">All</button>
@@ -130,16 +138,16 @@
 
             <ul id="task-list" class="task-list" aria-live="polite"></ul>
 
-<div id="pagination-container" class="pagination-container hidden">
-    <div class="pagination-info">
-        <span id="pagination-text">Showing 1-10 of 0 tasks</span>
-    </div>
-    <div class="pagination-controls">
-        <button id="pagination-prev" class="btn btn-ghost" type="button" disabled>Previous</button>
-        <div id="pagination-pages" class="pagination-pages"></div>
-        <button id="pagination-next" class="btn btn-ghost" type="button" disabled>Next</button>
-    </div>
-</div>
+            <div id="pagination-container" class="pagination-container hidden">
+                <div class="pagination-info">
+                    <span id="pagination-text">Showing 1-10 of 0 tasks</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="pagination-prev" class="btn btn-ghost" type="button" disabled>Previous</button>
+                    <div id="pagination-pages" class="pagination-pages"></div>
+                    <button id="pagination-next" class="btn btn-ghost" type="button" disabled>Next</button>
+                </div>
+            </div>
 
             <div id="calendar-container" class="calendar-container hidden">
                 <div class="calendar-header">
@@ -178,6 +186,10 @@
             </div>
         </section>
     </main>
+
+    <footer class="site-footer card reveal reveal-delay-1">
+        <p class="site-owner">Developed by Sohail Qureshi</p>
+    </footer>
 
     <div id="notification-container" class="notification-container" aria-live="polite"></div>
 
@@ -253,7 +265,8 @@
                 <span class="timer-display">00:00:00</span>
                 <div class="timer-buttons">
                     <button class="btn btn-ghost start-pause-btn" type="button">Start</button>
-                    <button class="btn btn-ghost link-above-btn" type="button" title="Link to task above">Link ↑</button>
+                    <button class="btn btn-ghost link-above-btn" type="button" title="Link to task above">Link
+                        ↑</button>
                     <button class="btn btn-ghost edit-btn" type="button">Edit</button>
                     <button class="btn btn-ghost reset-btn" type="button">Reset</button>
                     <button class="btn btn-ghost delete-btn" type="button">Delete</button>

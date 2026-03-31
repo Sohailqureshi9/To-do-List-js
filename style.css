@@ -88,9 +88,50 @@ body {
     position: relative;
     z-index: 1;
     width: min(1040px, calc(100% - 2rem));
-    margin: 1.8rem auto 2.4rem;
+    margin: 1rem auto 1.6rem;
     display: grid;
     gap: 1rem;
+}
+
+.site-header,
+.site-footer {
+    position: relative;
+    z-index: 1;
+    width: min(1040px, calc(100% - 2rem));
+    margin-inline: auto;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.site-header {
+    margin-top: 1.2rem;
+}
+
+.site-footer {
+    margin-bottom: 1.3rem;
+}
+
+.site-title,
+.site-owner,
+.site-footer p {
+    margin: 0;
+    text-align: center;
+}
+
+.site-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1rem, 2.6vw, 1.35rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.site-owner,
+.site-footer p {
+    color: var(--muted);
+    font-size: 0.92rem;
 }
 
 .card {
@@ -558,7 +599,7 @@ button:focus-visible {
 
 @media (min-width: 700px) {
     .app-shell {
-        margin-top: 2rem;
+        margin-top: 1.2rem;
     }
 
     .task-form {
@@ -573,6 +614,15 @@ button:focus-visible {
 
     .task-item {
         padding: 0.85rem;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .site-header,
+    .site-footer {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 
@@ -912,26 +962,26 @@ button:focus-visible {
 }
 
 .notification-close:hover {
-background: var(--panel);
-color: var(--ink);
+    background: var(--panel);
+    color: var(--ink);
 }
 
 @media (max-width: 768px) {
-.notification-container {
-top: 0.5rem;
-right: 0.5rem;
-left: 0.5rem;
-max-width: none;
-}
-    
-.notification {
-transform: translateY(-100%);
-}
-    
-.notification.show {
-transform: translateY(0);
-}
-    
+    .notification-container {
+        top: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+        max-width: none;
+    }
+
+    .notification {
+        transform: translateY(-100%);
+    }
+
+    .notification.show {
+        transform: translateY(0);
+    }
+
     .notification.hide {
         transform: translateY(-100%);
     }
@@ -1005,7 +1055,7 @@ transform: translateY(0);
     background: var(--panel-solid);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
-    box-shadow: 
+    box-shadow:
         0 32px 64px rgba(0, 0, 0, 0.25),
         0 0 0 1px rgba(255, 255, 255, 0.05),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -1029,10 +1079,10 @@ transform: translateY(0);
     justify-content: space-between;
     padding: 2.5rem 2rem 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(135deg, 
-        rgba(244, 162, 97, 0.05) 0%, 
-        var(--panel-solid) 50%, 
-        rgba(255, 255, 255, 0.02) 100%);
+    background: linear-gradient(135deg,
+            rgba(244, 162, 97, 0.05) 0%,
+            var(--panel-solid) 50%,
+            rgba(255, 255, 255, 0.02) 100%);
     position: relative;
 }
 
@@ -1043,10 +1093,10 @@ transform: translateY(0);
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(244, 162, 97, 0.3) 50%, 
-        transparent 100%);
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(244, 162, 97, 0.3) 50%,
+            transparent 100%);
 }
 
 .modal-title {
@@ -1110,10 +1160,10 @@ transform: translateY(0);
     left: 2rem;
     right: 2rem;
     height: 1px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(244, 162, 97, 0.2) 50%, 
-        transparent 100%);
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(244, 162, 97, 0.2) 50%,
+            transparent 100%);
     opacity: 0.5;
 }
 
@@ -1139,9 +1189,9 @@ transform: translateY(0);
 .modal-field {
     margin-bottom: 1.75rem;
     padding: 1.25rem;
-    background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.05) 0%, 
-        rgba(255, 255, 255, 0.02) 100%);
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0.02) 100%);
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1156,22 +1206,22 @@ transform: translateY(0);
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        var(--accent) 50%, 
-        transparent 100%);
+    background: linear-gradient(90deg,
+            transparent 0%,
+            var(--accent) 50%,
+            transparent 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
 .modal-field:hover {
     transform: translateY(-3px);
-    box-shadow: 
+    box-shadow:
         0 12px 24px rgba(0, 0, 0, 0.1),
         0 0 0 1px rgba(244, 162, 97, 0.1);
-    background: linear-gradient(135deg, 
-        rgba(244, 162, 97, 0.05) 0%, 
-        rgba(255, 255, 255, 0.05) 100%);
+    background: linear-gradient(135deg,
+            rgba(244, 162, 97, 0.05) 0%,
+            rgba(255, 255, 255, 0.05) 100%);
 }
 
 .modal-field:hover::before {
@@ -1367,10 +1417,13 @@ transform: translateY(0);
 }
 
 @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2);
         transform: scale(1);
     }
+
     50% {
         box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
         transform: scale(1.02);
@@ -1383,10 +1436,10 @@ transform: translateY(0);
     justify-content: flex-end;
     padding: 1.5rem 2rem 2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: linear-gradient(135deg, 
-        rgba(255, 255, 255, 0.02) 0%, 
-        var(--panel-solid) 50%, 
-        rgba(244, 162, 97, 0.03) 100%);
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.02) 0%,
+            var(--panel-solid) 50%,
+            rgba(244, 162, 97, 0.03) 100%);
     position: relative;
 }
 
@@ -1397,10 +1450,10 @@ transform: translateY(0);
     left: 2rem;
     right: 2rem;
     height: 1px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(244, 162, 97, 0.3) 50%, 
-        transparent 100%);
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(244, 162, 97, 0.3) 50%,
+            transparent 100%);
 }
 
 .modal-footer .btn {
@@ -1492,10 +1545,12 @@ transform: translateY(0);
         opacity: 0;
         transform: translateY(-50%) scale(0.5);
     }
+
     60% {
         opacity: 1;
         transform: translateY(-50%) scale(1.1);
     }
+
     100% {
         opacity: 1;
         transform: translateY(-50%) scale(1);
@@ -1510,41 +1565,41 @@ transform: translateY(0);
         margin: 1rem;
         border-radius: 20px;
     }
-    
+
     .modal-header,
     .modal-body,
     .modal-footer {
         padding: 1.5rem;
     }
-    
+
     .modal-header {
         padding: 2rem 1.5rem 1.25rem;
     }
-    
+
     .modal-title {
         font-size: 1.35rem;
     }
-    
+
     .modal-field {
         padding: 1rem;
         margin-bottom: 1.25rem;
     }
-    
+
     .modal-footer {
         flex-direction: column;
         gap: 0.875rem;
         padding: 1.25rem 1.5rem 1.5rem;
     }
-    
+
     .modal-footer .btn {
         width: 100%;
         padding: 1rem;
     }
-    
+
     .task-title:hover::after {
         display: none;
     }
-    
+
     .modal-body {
         max-height: 50vh;
     }

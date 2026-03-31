@@ -175,14 +175,14 @@ function isPastDate(dateString) {
 function showNotification(title, message, type = 'info', duration = 5000) {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
-    
+
     const icons = {
         success: '✓',
         error: '✕',
         warning: '⚠',
         info: 'ℹ'
     };
-    
+
     notification.innerHTML = `
         <div class="notification-header">
             <span class="notification-icon">${icons[type]}</span>
@@ -191,27 +191,27 @@ function showNotification(title, message, type = 'info', duration = 5000) {
         </div>
         <div class="notification-message">${message}</div>
     `;
-    
+
     notificationContainer.appendChild(notification);
-    
+
     // Trigger animation
     requestAnimationFrame(() => {
         notification.classList.add('show');
     });
-    
+
     // Close button functionality
     const closeBtn = notification.querySelector('.notification-close');
     closeBtn.addEventListener('click', () => {
         hideNotification(notification);
     });
-    
+
     // Auto-hide after duration
     if (duration > 0) {
         setTimeout(() => {
             hideNotification(notification);
         }, duration);
     }
-    
+
     return notification;
 }
 
@@ -219,7 +219,7 @@ function hideNotification(notification) {
     if (!notification || !notification.parentNode) {
         return;
     }
-    
+
     notification.classList.add('hide');
     setTimeout(() => {
         if (notification.parentNode) {
@@ -249,12 +249,12 @@ function showBrowserNotification(title, message, options = {}) {
             tag: 'taskflow',
             ...options
         });
-        
-        notification.onclick = function() {
+
+        notification.onclick = function () {
             window.focus();
             notification.close();
         };
-        
+
         setTimeout(() => {
             notification.close();
         }, 5000);
@@ -264,7 +264,7 @@ function showBrowserNotification(title, message, options = {}) {
 function notifyTaskCreated(task) {
     const title = 'Task Created';
     const message = `"${task.title}" has been added to your tasks.`;
-    
+
     showNotification(title, message, 'success');
     showBrowserNotification(title, message);
 }
@@ -272,7 +272,7 @@ function notifyTaskCreated(task) {
 function notifyTaskCompleted(task) {
     const title = 'Task Completed';
     const message = `Congratulations! You completed "${task.title}".`;
-    
+
     showNotification(title, message, 'success');
     showBrowserNotification(title, message);
 }
@@ -280,7 +280,7 @@ function notifyTaskCompleted(task) {
 function notifyTaskDeleted(task) {
     const title = 'Task Deleted';
     const message = `"${task.title}" has been removed from your tasks.`;
-    
+
     showNotification(title, message, 'info');
     showBrowserNotification(title, message);
 }
@@ -288,7 +288,7 @@ function notifyTaskDeleted(task) {
 function notifyTaskOverdue(task) {
     const title = 'Task Overdue';
     const message = `"${task.title}" is overdue! Please complete it soon.`;
-    
+
     showNotification(title, message, 'warning');
     showBrowserNotification(title, message, { urgency: 'high' });
 }
@@ -296,7 +296,7 @@ function notifyTaskOverdue(task) {
 function notifyTimerStarted(task) {
     const title = 'Timer Started';
     const message = `Timer started for "${task.title}".`;
-    
+
     showNotification(title, message, 'info');
 }
 
@@ -304,7 +304,7 @@ function notifyTimerStopped(task) {
     const elapsed = formatDuration(getElapsedMs(task));
     const title = 'Timer Stopped';
     const message = `Timer stopped for "${task.title}". Total time: ${elapsed}`;
-    
+
     showNotification(title, message, 'info');
 }
 
@@ -318,7 +318,7 @@ function checkOverdueTasks() {
         const daysDiff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
         return daysDiff === 0; // Just became today
     });
-    
+
     newlyOverdue.forEach(task => {
         notifyTaskOverdue(task);
     });
@@ -334,11 +334,11 @@ function showTaskModal(taskId) {
     // Set modal content
     modalTaskTitle.textContent = task.title;
     modalTaskDescription.textContent = task.description || 'No description provided';
-    
+
     // Priority with styling
     modalTaskPriority.textContent = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
     modalTaskPriority.className = `modal-value priority-${task.priority}`;
-    
+
     // Status with styling
     let status = 'Active';
     let statusClass = 'status-active';
@@ -351,30 +351,30 @@ function showTaskModal(taskId) {
     }
     modalTaskStatus.textContent = status;
     modalTaskStatus.className = `modal-value ${statusClass}`;
-    
+
     // Category
     modalTaskCategory.textContent = task.category ? task.category.charAt(0).toUpperCase() + task.category.slice(1) : 'No category';
-    
+
     // Due date
     modalTaskDueDate.textContent = formatDate(task.dueDate);
-    
+
     // Time tracked
     modalTaskTime.textContent = formatDuration(getElapsedMs(task));
-    
+
     // Created date
     const createdDate = new Date(task.createdAt);
     modalTaskCreated.textContent = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString();
-    
+
     // Dependency
     modalTaskDependency.textContent = getDependencyLabel(task);
-    
+
     // Store current task ID for edit button
     modalEdit.dataset.taskId = task.id;
-    
+
     // Show modal
     taskModal.classList.add('show');
     taskModal.setAttribute('aria-hidden', 'false');
-    
+
     // Focus management
     modalClose.focus();
 }
@@ -572,7 +572,7 @@ function renderTasks() {
         renderCalendar();
         return;
     }
-    
+
     const paginatedTasks = getPaginatedTasks();
     const fragment = document.createDocumentFragment();
 
@@ -593,7 +593,7 @@ function renderTasks() {
         item.classList.toggle('overdue', isOverdue(task));
 
         check.checked = task.completed;
-        
+
         // Add overdue badge to title
         title.innerHTML = task.title;
         if (isOverdue(task)) {
@@ -602,7 +602,7 @@ function renderTasks() {
             overdueBadge.textContent = 'OVERDUE';
             title.appendChild(overdueBadge);
         }
-        
+
         priority.textContent = task.priority;
         priority.classList.add(`priority-${task.priority}`);
 
@@ -691,14 +691,14 @@ function addOrUpdateTask(event) {
     const dueDate = dateInput.value || null;
     const category = categoryInput.value || null;
     const description = taskDescription.value.trim();
-    
+
     // Validate that due date is not in the past
     if (dueDate && isPastDate(dueDate)) {
         alert('Due date cannot be in the past. Please select today or a future date.');
         dateInput.focus();
         return;
     }
-    
+
     let dependencyId = dependencyInput.value || null;
 
     if (dependencyId && dependencyId === state.editingTaskId) {
@@ -932,7 +932,7 @@ function setView(viewType) {
     calendarViewBtn.classList.toggle('is-active', viewType === 'calendar');
     taskList.classList.toggle('hidden', viewType === 'calendar');
     calendarContainer.classList.toggle('hidden', viewType === 'list');
-    
+
     if (viewType === 'calendar') {
         renderCalendar();
     } else {
@@ -943,34 +943,34 @@ function setView(viewType) {
 function renderCalendar() {
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
-    
+
     // Update month/year display
     calendarMonthYear.textContent = new Date(year, month).toLocaleDateString('en-US', {
         month: 'long',
         year: 'numeric'
     });
-    
+
     // Get first day of month and number of days
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
-    
+
     // Clear calendar days
     calendarDays.innerHTML = '';
-    
+
     // Add previous month's trailing days
     for (let i = firstDay - 1; i >= 0; i--) {
         const day = daysInPrevMonth - i;
         const dayElement = createCalendarDay(day, true, new Date(year, month - 1, day));
         calendarDays.appendChild(dayElement);
     }
-    
+
     // Add current month's days
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = createCalendarDay(day, false, new Date(year, month, day));
         calendarDays.appendChild(dayElement);
     }
-    
+
     // Add next month's leading days
     const totalCells = calendarDays.children.length;
     const remainingCells = 42 - totalCells; // 6 weeks * 7 days
@@ -986,30 +986,30 @@ function createCalendarDay(day, isOtherMonth, date) {
     if (isOtherMonth) {
         dayElement.classList.add('other-month');
     }
-    
+
     // Check if today
     const today = new Date();
     if (date.toDateString() === today.toDateString()) {
         dayElement.classList.add('today');
     }
-    
+
     // Add day number
     const dayNumber = document.createElement('div');
     dayNumber.className = 'calendar-day-number';
     dayNumber.textContent = day;
     dayElement.appendChild(dayNumber);
-    
+
     // Add tasks for this day
     const tasksContainer = document.createElement('div');
     tasksContainer.className = 'calendar-tasks';
-    
+
     const visibleTasks = getVisibleTasks();
     const dayTasks = visibleTasks.filter(task => {
         if (!task.dueDate) return false;
         const taskDate = new Date(`${task.dueDate}T00:00:00`);
         return taskDate.toDateString() === date.toDateString();
     });
-    
+
     dayTasks.forEach(task => {
         const taskElement = document.createElement('div');
         taskElement.className = `calendar-task priority-${task.priority}`;
@@ -1021,7 +1021,7 @@ function createCalendarDay(day, isOtherMonth, date) {
         taskElement.addEventListener('click', () => startEditTask(task.id));
         tasksContainer.appendChild(taskElement);
     });
-    
+
     dayElement.appendChild(tasksContainer);
     return dayElement;
 }
@@ -1029,7 +1029,7 @@ function createCalendarDay(day, isOtherMonth, date) {
 function changeCalendarMonth(direction) {
     const newMonth = state.calendarDate.getMonth() + direction;
     const newYear = state.calendarDate.getFullYear();
-    
+
     if (newMonth < 0) {
         state.calendarDate = new Date(newYear - 1, 11, 1);
     } else if (newMonth > 11) {
@@ -1037,7 +1037,7 @@ function changeCalendarMonth(direction) {
     } else {
         state.calendarDate = new Date(newYear, newMonth, 1);
     }
-    
+
     renderCalendar();
 }
 
@@ -1066,30 +1066,30 @@ function setPage(page) {
 function renderPagination() {
     const visibleTasks = getVisibleTasks();
     const totalPages = getTotalPages();
-    
+
     if (totalPages <= 1 || state.currentView === 'calendar') {
         paginationContainer.classList.add('hidden');
         return;
     }
-    
+
     paginationContainer.classList.remove('hidden');
-    
+
     // Update pagination info
     const startItem = (state.currentPage - 1) * state.tasksPerPage + 1;
     const endItem = Math.min(state.currentPage * state.tasksPerPage, visibleTasks.length);
     paginationText.textContent = `Showing ${startItem}-${endItem} of ${visibleTasks.length} tasks`;
-    
+
     // Update prev/next buttons
     paginationPrevBtn.disabled = state.currentPage === 1;
     paginationNextBtn.disabled = state.currentPage === totalPages;
-    
+
     // Update page buttons
     paginationPages.innerHTML = '';
-    
+
     // Show page numbers with ellipsis for many pages
     let startPage = Math.max(1, state.currentPage - 2);
     let endPage = Math.min(totalPages, state.currentPage + 2);
-    
+
     if (startPage > 1) {
         addPageButton(1);
         if (startPage > 2) {
@@ -1099,11 +1099,11 @@ function renderPagination() {
             paginationPages.appendChild(ellipsis);
         }
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         addPageButton(i);
     }
-    
+
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
             const ellipsis = document.createElement('span');
@@ -1291,7 +1291,7 @@ function importTasksFromText(text) {
 function handleListClick(event) {
     const button = event.target.closest('button');
     const taskTitle = event.target.closest('.task-title');
-    
+
     const taskItem = event.target.closest('.task-item');
     if (!taskItem) {
         return;
@@ -1449,6 +1449,7 @@ setInterval(() => {
 
 loadState();
 loadTheme();
+refreshDependencyOptions();
 renderTasks();
 updateStats();
 
