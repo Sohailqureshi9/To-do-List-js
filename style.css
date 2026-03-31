@@ -639,6 +639,12 @@ button:focus-visible {
     background: var(--ok);
 }
 
+.calendar-task.overdue {
+    background: var(--danger);
+    border: 1px solid #d32f2f;
+    font-weight: 600;
+}
+
 .pagination-container {
     background: var(--panel-solid);
     border: 1px solid var(--line);
@@ -692,4 +698,35 @@ button:focus-visible {
 
 .pagination-container.hidden {
     display: none;
+}
+
+.task-item.overdue {
+    border-left: 4px solid var(--danger);
+    background: #fff5f5;
+}
+
+.task-item.overdue:hover {
+    background: #ffeded;
+    border-left-color: #d32f2f;
+}
+
+.overdue-badge {
+    background: var(--danger);
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.task-item.overdue .task-title {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.task-item.overdue .priority-pill {
+    opacity: 0.8;
 }

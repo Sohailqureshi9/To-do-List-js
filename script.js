@@ -35,6 +35,7 @@ const taskTemplate = document.getElementById('task-template');
 const totalTasksElement = document.getElementById('total-tasks');
 const completedTasksElement = document.getElementById('completed-tasks');
 const runningTimersElement = document.getElementById('running-timers');
+const overdueTasksElement = document.getElementById('overdue-tasks');
 const timeTodayElement = document.getElementById('time-today');
 
 const formSubmitButton = taskForm.querySelector('button[type="submit"]');
@@ -268,6 +269,7 @@ function updateStats() {
     const total = state.tasks.length;
     const completed = state.tasks.filter((task) => task.completed).length;
     const running = state.tasks.filter((task) => task.isRunning).length;
+    const overdue = state.tasks.filter((task) => isOverdue(task)).length;
 
     const todayKey = new Date().toISOString().slice(0, 10);
     const timeToday = state.tasks.reduce((sum, task) => {
@@ -282,6 +284,14 @@ function updateStats() {
     completedTasksElement.textContent = String(completed);
     runningTimersElement.textContent = String(running);
     timeTodayElement.textContent = formatDuration(timeToday);
+    overdueTasksElement.textContent = String(overdue);
+}
+
+function updateOverdueStatus() {
+    // This function will be called to update overdue status
+    // The isOverdue function already checks current date
+    // This ensures UI updates when tasks become overdue
+    renderTasks();
 }
 
 function getPaginatedTasks() {
@@ -314,9 +324,19 @@ function renderTasks() {
         item.dataset.id = task.id;
         item.classList.toggle('completed', task.completed);
         item.classList.toggle('is-running', task.isRunning);
+        item.classList.toggle('overdue', isOverdue(task));
 
         check.checked = task.completed;
-        title.textContent = task.title;
+        
+        // Add overdue badge to title
+        title.innerHTML = task.title;
+        if (isOverdue(task)) {
+            const overdueBadge = document.createElement('span');
+            overdueBadge.className = 'overdue-badge';
+            overdueBadge.textContent = 'OVERDUE';
+            title.appendChild(overdueBadge);
+        }
+        
         priority.textContent = task.priority;
         priority.classList.add(`priority-${task.priority}`);
 
@@ -712,8 +732,11 @@ function createCalendarDay(day, isOtherMonth, date) {
     dayTasks.forEach(task => {
         const taskElement = document.createElement('div');
         taskElement.className = `calendar-task priority-${task.priority}`;
+        if (isOverdue(task)) {
+            taskElement.classList.add('overdue');
+        }
         taskElement.textContent = task.title;
-        taskElement.title = task.title;
+        taskElement.title = task.title + (isOverdue(task) ? ' (OVERDUE)' : '');
         taskElement.addEventListener('click', () => startEditTask(task.id));
         tasksContainer.appendChild(taskElement);
     });
@@ -1136,4 +1159,5 @@ dateInput.setAttribute('min', today);
 
 setInterval(() => {
     updateLiveTimers();
+    updateOverdueStatus();
 }, 1000);
