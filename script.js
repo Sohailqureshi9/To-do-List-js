@@ -371,19 +371,6 @@ function addOrUpdateTask(event) {
     }
     
     let dependencyId = dependencyInput.value || null;
-    const dependAboveBox = document.getElementById('task-depend-above');
-
-    if (dependAboveBox && dependAboveBox.checked) {
-        if (!state.editingTaskId && state.tasks.length > 0) {
-            dependencyId = state.tasks[0].id;
-        } else if (state.editingTaskId) {
-            const visibleTasks = getVisibleTasks();
-            const vIndex = visibleTasks.findIndex(t => t.id === state.editingTaskId);
-            if (vIndex > 0) {
-                dependencyId = visibleTasks[vIndex - 1].id;
-            }
-        }
-    }
 
     if (dependencyId && dependencyId === state.editingTaskId) {
         alert('A task cannot depend on itself.');
@@ -408,7 +395,6 @@ function addOrUpdateTask(event) {
     taskForm.reset();
     priorityInput.value = 'medium';
     dependencyInput.value = '';
-    if (dependAboveBox) dependAboveBox.checked = false;
     clearEditingMode();
 
     saveState();
@@ -432,8 +418,6 @@ function deleteTask(taskId) {
         taskForm.reset();
         priorityInput.value = 'medium';
         dependencyInput.value = '';
-        const dependBox = document.getElementById('task-depend-above');
-        if (dependBox) dependBox.checked = false;
     }
     saveState();
     refreshDependencyOptions();
