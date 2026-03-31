@@ -8,6 +8,10 @@ It supports task management, per-task timer tracking, filters, search, and local
 - Add tasks with title, priority, and optional due date
 - Mark tasks as completed or active
 - Start, pause, and reset a timer for each task
+- Edit existing task title, priority, and due date
+- Drag-and-drop reorder tasks
+- Export tasks to JSON backup
+- Import tasks from JSON backup
 - Persistent data using `localStorage` (tasks and timer state survive refresh)
 - Filter by all, active, completed
 - Search tasks by keyword
@@ -18,6 +22,13 @@ It supports task management, per-task timer tracking, filters, search, and local
   - Time tracked today
 - Clear all completed tasks
 - Responsive UI for desktop and mobile
+
+## Performance and Efficiency
+
+- Uses event delegation for task actions instead of attaching listeners per item
+- Uses debounced search input to avoid unnecessary renders
+- Updates timer text every second without full list re-rendering
+- Renders with `DocumentFragment` for cleaner, faster DOM updates
 
 ## Project Structure
 
@@ -58,7 +69,6 @@ Your app will be live on a public URL.
 
 ## Future Improvements
 
-- Edit existing task text
 - Dark mode toggle
-- Export/import tasks as JSON
-- Drag-and-drop task ordering
+- Optional cloud sync with account login
+- Multiple task boards (work, personal, study)

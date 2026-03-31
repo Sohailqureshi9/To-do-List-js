@@ -65,6 +65,7 @@
                     <input type="date" id="task-date" name="dueDate">
                 </div>
                 <button type="submit" class="btn btn-primary">Add Task</button>
+                <button id="cancel-edit" type="button" class="btn btn-secondary hidden">Cancel Edit</button>
             </form>
 
             <div class="toolbar">
@@ -86,13 +87,19 @@
             </div>
 
             <div class="actions-row">
+                <div class="import-export">
+                    <button id="export-tasks" class="btn btn-secondary" type="button">Export JSON</button>
+                    <button id="import-tasks" class="btn btn-secondary" type="button">Import JSON</button>
+                    <input type="file" id="import-file" accept="application/json" class="hidden"
+                        aria-label="Import task JSON file">
+                </div>
                 <button id="clear-completed" class="btn btn-danger" type="button">Clear Completed</button>
             </div>
         </section>
     </main>
 
     <template id="task-template">
-        <li class="task-item">
+        <li class="task-item" draggable="true">
             <div class="task-main">
                 <label class="check-wrap">
                     <input type="checkbox" class="task-check" aria-label="Mark task complete">
@@ -110,6 +117,7 @@
                 <span class="timer-display">00:00:00</span>
                 <div class="timer-buttons">
                     <button class="btn btn-ghost start-pause-btn" type="button">Start</button>
+                    <button class="btn btn-ghost edit-btn" type="button">Edit</button>
                     <button class="btn btn-ghost reset-btn" type="button">Reset</button>
                     <button class="btn btn-ghost delete-btn" type="button">Delete</button>
                 </div>

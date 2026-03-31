@@ -6,9 +6,13 @@ const priorityInput = document.getElementById('task-priority');
 const dateInput = document.getElementById('task-date');
 const searchInput = document.getElementById('search-input');
 const filterButtons = document.querySelectorAll('.btn-filter');
+const cancelEditButton = document.getElementById('cancel-edit');
 const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
 const clearCompletedButton = document.getElementById('clear-completed');
+const exportTasksButton = document.getElementById('export-tasks');
+const importTasksButton = document.getElementById('import-tasks');
+const importFileInput = document.getElementById('import-file');
 const taskTemplate = document.getElementById('task-template');
 
 const totalTasksElement = document.getElementById('total-tasks');
@@ -16,24 +20,28 @@ const completedTasksElement = document.getElementById('completed-tasks');
 const runningTimersElement = document.getElementById('running-timers');
 const timeTodayElement = document.getElementById('time-today');
 
+const formSubmitButton = taskForm.querySelector('button[type="submit"]');
+
 let state = {
     tasks: [],
     filter: 'all',
-    query: ''
+    query: '',
+    editingTaskId: null
 };
 
-const timerTicker = setInterval(() => {
-    renderTasks();
-    updateStats();
-}, 1000);
+let dragTaskId = null;
+let searchDebounce = null;
 
-window.addEventListener('beforeunload', () => {
-    clearInterval(timerTicker);
-});
+function makeId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+    }
+    return `task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function createTask(title, priority, dueDate) {
     return {
-        id: crypto.randomUUID(),
+        id: makeId(),
         title,
         priority,
         dueDate: dueDate || null,
@@ -47,7 +55,7 @@ function createTask(title, priority, dueDate) {
 
 function normalizeTask(task) {
     return {
-        id: task.id || crypto.randomUUID(),
+        id: task.id || makeId(),
         title: typeof task.title === 'string' ? task.title : '',
         priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
         dueDate: task.dueDate || null,
@@ -57,6 +65,14 @@ function normalizeTask(task) {
         isRunning: Boolean(task.isRunning),
         startedAt: task.startedAt ? Number(task.startedAt) : null
     };
+}
+
+function getTaskById(taskId) {
+    return state.tasks.find((task) => task.id === taskId) || null;
+}
+
+function getTaskIndex(taskId) {
+    return state.tasks.findIndex((task) => task.id === taskId);
 }
 
 function getElapsedMs(task) {
@@ -117,6 +133,21 @@ function loadState() {
     }
 }
 
+function getVisibleTasks() {
+    const query = state.query.trim().toLowerCase();
+
+    return state.tasks.filter((task) => {
+        const matchesFilter =
+            state.filter === 'all' ||
+            (state.filter === 'active' && !task.completed) ||
+            (state.filter === 'completed' && task.completed);
+
+        const matchesQuery = task.title.toLowerCase().includes(query);
+
+        return matchesFilter && matchesQuery;
+    });
+}
+
 function updateStats() {
     const total = state.tasks.length;
     const completed = state.tasks.filter((task) => task.completed).length;
@@ -137,27 +168,9 @@ function updateStats() {
     timeTodayElement.textContent = formatDuration(timeToday);
 }
 
-function getVisibleTasks() {
-    const query = state.query.trim().toLowerCase();
-
-    return state.tasks.filter((task) => {
-        const matchesFilter =
-            state.filter === 'all' ||
-            (state.filter === 'active' && !task.completed) ||
-            (state.filter === 'completed' && task.completed);
-
-        const matchesQuery = task.title.toLowerCase().includes(query);
-
-        return matchesFilter && matchesQuery;
-    });
-}
-
 function renderTasks() {
-    taskList.innerHTML = '';
-
     const visibleTasks = getVisibleTasks();
-
-    emptyState.classList.toggle('hidden', visibleTasks.length > 0);
+    const fragment = document.createDocumentFragment();
 
     visibleTasks.forEach((task) => {
         const clone = taskTemplate.content.cloneNode(true);
@@ -169,7 +182,6 @@ function renderTasks() {
         const timerDisplay = clone.querySelector('.timer-display');
         const startPauseButton = clone.querySelector('.start-pause-btn');
         const resetButton = clone.querySelector('.reset-btn');
-        const deleteButton = clone.querySelector('.delete-btn');
 
         item.dataset.id = task.id;
         item.classList.toggle('completed', task.completed);
@@ -186,31 +198,90 @@ function renderTasks() {
         timerDisplay.textContent = formatDuration(getElapsedMs(task));
         startPauseButton.textContent = task.isRunning ? 'Pause' : 'Start';
         startPauseButton.disabled = task.completed;
-        resetButton.disabled = task.isRunning && !task.completed;
+        resetButton.disabled = task.isRunning;
 
-        check.addEventListener('change', () => toggleTaskComplete(task.id));
-        startPauseButton.addEventListener('click', () => toggleTimer(task.id));
-        resetButton.addEventListener('click', () => resetTimer(task.id));
-        deleteButton.addEventListener('click', () => deleteTask(task.id));
-
-        taskList.appendChild(clone);
+        fragment.appendChild(clone);
     });
+
+    taskList.innerHTML = '';
+    taskList.appendChild(fragment);
+    emptyState.classList.toggle('hidden', visibleTasks.length > 0);
 }
 
-function addTask(event) {
-    event.preventDefault();
-    const title = taskInput.value.trim();
+function updateLiveTimers() {
+    const runningTasks = state.tasks.filter((task) => task.isRunning);
+    if (runningTasks.length === 0) {
+        return;
+    }
 
+    runningTasks.forEach((task) => {
+        const item = taskList.querySelector(`.task-item[data-id="${task.id}"]`);
+        if (!item) {
+            return;
+        }
+        const timerDisplay = item.querySelector('.timer-display');
+        if (timerDisplay) {
+            timerDisplay.textContent = formatDuration(getElapsedMs(task));
+        }
+    });
+
+    updateStats();
+}
+
+function setEditingMode(taskId) {
+    state.editingTaskId = taskId;
+    formSubmitButton.textContent = 'Update Task';
+    cancelEditButton.classList.remove('hidden');
+}
+
+function clearEditingMode() {
+    state.editingTaskId = null;
+    formSubmitButton.textContent = 'Add Task';
+    cancelEditButton.classList.add('hidden');
+}
+
+function startEditTask(taskId) {
+    const task = getTaskById(taskId);
+    if (!task) {
+        return;
+    }
+
+    taskInput.value = task.title;
+    priorityInput.value = task.priority;
+    dateInput.value = task.dueDate || '';
+    setEditingMode(taskId);
+    taskInput.focus();
+}
+
+function addOrUpdateTask(event) {
+    event.preventDefault();
+
+    const title = taskInput.value.trim();
     if (!title) {
         taskInput.focus();
         return;
     }
 
-    const task = createTask(title, priorityInput.value, dateInput.value);
-    state.tasks.unshift(task);
+    const priority = priorityInput.value;
+    const dueDate = dateInput.value || null;
+
+    if (state.editingTaskId) {
+        const index = getTaskIndex(state.editingTaskId);
+        if (index !== -1) {
+            state.tasks[index] = {
+                ...state.tasks[index],
+                title,
+                priority,
+                dueDate
+            };
+        }
+    } else {
+        state.tasks.unshift(createTask(title, priority, dueDate));
+    }
 
     taskForm.reset();
     priorityInput.value = 'medium';
+    clearEditingMode();
 
     saveState();
     renderTasks();
@@ -219,32 +290,30 @@ function addTask(event) {
 
 function deleteTask(taskId) {
     state.tasks = state.tasks.filter((task) => task.id !== taskId);
+    if (state.editingTaskId === taskId) {
+        clearEditingMode();
+        taskForm.reset();
+        priorityInput.value = 'medium';
+    }
     saveState();
     renderTasks();
     updateStats();
 }
 
-function toggleTaskComplete(taskId) {
-    state.tasks = state.tasks.map((task) => {
-        if (task.id !== taskId) {
-            return task;
-        }
+function toggleTaskComplete(taskId, isComplete) {
+    const index = getTaskIndex(taskId);
+    if (index === -1) {
+        return;
+    }
 
-        if (!task.completed) {
-            return {
-                ...task,
-                completed: true,
-                isRunning: false,
-                accumulatedMs: getElapsedMs(task),
-                startedAt: null
-            };
-        }
-
-        return {
-            ...task,
-            completed: false
-        };
-    });
+    const task = state.tasks[index];
+    state.tasks[index] = {
+        ...task,
+        completed: isComplete,
+        isRunning: isComplete ? false : task.isRunning,
+        accumulatedMs: isComplete ? getElapsedMs(task) : task.accumulatedMs,
+        startedAt: isComplete ? null : task.startedAt
+    };
 
     saveState();
     renderTasks();
@@ -252,26 +321,30 @@ function toggleTaskComplete(taskId) {
 }
 
 function toggleTimer(taskId) {
-    state.tasks = state.tasks.map((task) => {
-        if (task.id !== taskId || task.completed) {
-            return task;
-        }
+    const index = getTaskIndex(taskId);
+    if (index === -1) {
+        return;
+    }
 
-        if (task.isRunning) {
-            return {
-                ...task,
-                isRunning: false,
-                accumulatedMs: getElapsedMs(task),
-                startedAt: null
-            };
-        }
+    const task = state.tasks[index];
+    if (task.completed) {
+        return;
+    }
 
-        return {
+    if (task.isRunning) {
+        state.tasks[index] = {
+            ...task,
+            isRunning: false,
+            accumulatedMs: getElapsedMs(task),
+            startedAt: null
+        };
+    } else {
+        state.tasks[index] = {
             ...task,
             isRunning: true,
             startedAt: Date.now()
         };
-    });
+    }
 
     saveState();
     renderTasks();
@@ -279,18 +352,17 @@ function toggleTimer(taskId) {
 }
 
 function resetTimer(taskId) {
-    state.tasks = state.tasks.map((task) => {
-        if (task.id !== taskId) {
-            return task;
-        }
+    const index = getTaskIndex(taskId);
+    if (index === -1) {
+        return;
+    }
 
-        return {
-            ...task,
-            accumulatedMs: 0,
-            isRunning: false,
-            startedAt: null
-        };
-    });
+    state.tasks[index] = {
+        ...state.tasks[index],
+        accumulatedMs: 0,
+        isRunning: false,
+        startedAt: null
+    };
 
     saveState();
     renderTasks();
@@ -312,18 +384,204 @@ function setFilter(nextFilter) {
     renderTasks();
 }
 
-taskForm.addEventListener('submit', addTask);
-searchInput.addEventListener('input', (event) => {
-    state.query = event.target.value;
+function reorderTasks(dragId, dropId) {
+    const visibleIds = getVisibleTasks().map((task) => task.id);
+    if (!visibleIds.includes(dragId) || !visibleIds.includes(dropId)) {
+        return;
+    }
+
+    const reorderedVisible = visibleIds.slice();
+    const from = reorderedVisible.indexOf(dragId);
+    const to = reorderedVisible.indexOf(dropId);
+
+    reorderedVisible.splice(from, 1);
+    reorderedVisible.splice(to, 0, dragId);
+
+    const reorderedSet = new Set(reorderedVisible);
+    const reorderedQueue = reorderedVisible.slice();
+
+    state.tasks = state.tasks.map((task) => {
+        if (!reorderedSet.has(task.id)) {
+            return task;
+        }
+        const nextId = reorderedQueue.shift();
+        return getTaskById(nextId);
+    });
+
+    saveState();
     renderTasks();
+}
+
+function exportTasks() {
+    const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        tasks: state.tasks
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `taskflow-${today}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+}
+
+function importTasksFromText(text) {
+    let parsed;
+    try {
+        parsed = JSON.parse(text);
+    } catch {
+        alert('Invalid JSON file.');
+        return;
+    }
+
+    const importedTasks = Array.isArray(parsed) ? parsed : parsed.tasks;
+    if (!Array.isArray(importedTasks)) {
+        alert('JSON must contain a tasks array.');
+        return;
+    }
+
+    state.tasks = importedTasks.map(normalizeTask);
+    clearEditingMode();
+    taskForm.reset();
+    priorityInput.value = 'medium';
+
+    saveState();
+    renderTasks();
+    updateStats();
+}
+
+function handleListClick(event) {
+    const button = event.target.closest('button');
+    if (!button) {
+        return;
+    }
+
+    const taskItem = event.target.closest('.task-item');
+    if (!taskItem) {
+        return;
+    }
+
+    const taskId = taskItem.dataset.id;
+    if (!taskId) {
+        return;
+    }
+
+    if (button.classList.contains('start-pause-btn')) {
+        toggleTimer(taskId);
+    } else if (button.classList.contains('reset-btn')) {
+        resetTimer(taskId);
+    } else if (button.classList.contains('delete-btn')) {
+        deleteTask(taskId);
+    } else if (button.classList.contains('edit-btn')) {
+        startEditTask(taskId);
+    }
+}
+
+function handleListChange(event) {
+    if (!event.target.classList.contains('task-check')) {
+        return;
+    }
+
+    const taskItem = event.target.closest('.task-item');
+    if (!taskItem || !taskItem.dataset.id) {
+        return;
+    }
+
+    toggleTaskComplete(taskItem.dataset.id, event.target.checked);
+}
+
+function clearDragMarkers() {
+    taskList.querySelectorAll('.drag-over').forEach((item) => item.classList.remove('drag-over'));
+}
+
+taskForm.addEventListener('submit', addOrUpdateTask);
+
+cancelEditButton.addEventListener('click', () => {
+    clearEditingMode();
+    taskForm.reset();
+    priorityInput.value = 'medium';
+});
+
+searchInput.addEventListener('input', (event) => {
+    const nextQuery = event.target.value;
+    window.clearTimeout(searchDebounce);
+    searchDebounce = window.setTimeout(() => {
+        state.query = nextQuery;
+        renderTasks();
+    }, 140);
 });
 
 filterButtons.forEach((button) => {
     button.addEventListener('click', () => setFilter(button.dataset.filter));
 });
 
+taskList.addEventListener('click', handleListClick);
+taskList.addEventListener('change', handleListChange);
+
+taskList.addEventListener('dragstart', (event) => {
+    const item = event.target.closest('.task-item');
+    if (!item || !item.dataset.id) {
+        return;
+    }
+    dragTaskId = item.dataset.id;
+    item.classList.add('dragging');
+});
+
+taskList.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    const item = event.target.closest('.task-item');
+    clearDragMarkers();
+    if (item && item.dataset.id !== dragTaskId) {
+        item.classList.add('drag-over');
+    }
+});
+
+taskList.addEventListener('dragleave', (event) => {
+    const item = event.target.closest('.task-item');
+    if (item) {
+        item.classList.remove('drag-over');
+    }
+});
+
+taskList.addEventListener('drop', (event) => {
+    event.preventDefault();
+    const item = event.target.closest('.task-item');
+    if (!item || !item.dataset.id || !dragTaskId || item.dataset.id === dragTaskId) {
+        clearDragMarkers();
+        return;
+    }
+    reorderTasks(dragTaskId, item.dataset.id);
+    clearDragMarkers();
+});
+
+taskList.addEventListener('dragend', () => {
+    dragTaskId = null;
+    taskList.querySelectorAll('.dragging').forEach((item) => item.classList.remove('dragging'));
+    clearDragMarkers();
+});
+
 clearCompletedButton.addEventListener('click', clearCompleted);
+
+exportTasksButton.addEventListener('click', exportTasks);
+importTasksButton.addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+        return;
+    }
+    const text = await file.text();
+    importTasksFromText(text);
+    importFileInput.value = '';
+});
 
 loadState();
 renderTasks();
 updateStats();
+
+setInterval(() => {
+    updateLiveTimers();
+}, 1000);
