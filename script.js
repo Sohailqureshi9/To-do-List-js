@@ -4,6 +4,7 @@ const THEME_STORAGE_KEY = 'taskflow-theme';
 
 const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task-input');
+const taskDescription = document.getElementById('task-description');
 const priorityInput = document.getElementById('task-priority');
 const dateInput = document.getElementById('task-date');
 const dependencyInput = document.getElementById('task-dependency');
@@ -34,6 +35,22 @@ const importFileInput = document.getElementById('import-file');
 const taskTemplate = document.getElementById('task-template');
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 const notificationContainer = document.getElementById('notification-container');
+
+// Modal elements
+const taskModal = document.getElementById('task-modal');
+const modalOverlay = document.getElementById('modal-overlay');
+const modalClose = document.getElementById('modal-close');
+const modalCloseFooter = document.getElementById('modal-close-footer');
+const modalEdit = document.getElementById('modal-edit');
+const modalTaskTitle = document.getElementById('modal-task-title');
+const modalTaskDescription = document.getElementById('modal-task-description');
+const modalTaskPriority = document.getElementById('modal-task-priority');
+const modalTaskStatus = document.getElementById('modal-task-status');
+const modalTaskCategory = document.getElementById('modal-task-category');
+const modalTaskDueDate = document.getElementById('modal-task-due-date');
+const modalTaskTime = document.getElementById('modal-task-time');
+const modalTaskCreated = document.getElementById('modal-task-created');
+const modalTaskDependency = document.getElementById('modal-task-dependency');
 
 const totalTasksElement = document.getElementById('total-tasks');
 const completedTasksElement = document.getElementById('completed-tasks');
@@ -66,10 +83,11 @@ function makeId() {
     return `task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createTask(title, priority, dueDate, dependencyId, category) {
+function createTask(title, priority, dueDate, dependencyId, category, description = '') {
     return {
         id: makeId(),
         title,
+        description,
         priority,
         dueDate: dueDate || null,
         dependencyId: dependencyId || null,
@@ -86,6 +104,7 @@ function normalizeTask(task) {
     return {
         id: task.id || makeId(),
         title: typeof task.title === 'string' ? task.title : '',
+        description: typeof task.description === 'string' ? task.description : '',
         priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
         dueDate: task.dueDate || null,
         dependencyId: task.dependencyId || null,
@@ -303,6 +322,70 @@ function checkOverdueTasks() {
     newlyOverdue.forEach(task => {
         notifyTaskOverdue(task);
     });
+}
+
+// Modal functions
+function showTaskModal(taskId) {
+    const task = getTaskById(taskId);
+    if (!task) {
+        return;
+    }
+
+    // Set modal content
+    modalTaskTitle.textContent = task.title;
+    modalTaskDescription.textContent = task.description || 'No description provided';
+    
+    // Priority with styling
+    modalTaskPriority.textContent = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+    modalTaskPriority.className = `modal-value priority-${task.priority}`;
+    
+    // Status with styling
+    let status = 'Active';
+    let statusClass = 'status-active';
+    if (task.completed) {
+        status = 'Completed';
+        statusClass = 'status-completed';
+    } else if (isOverdue(task)) {
+        status = 'Overdue';
+        statusClass = 'status-overdue';
+    }
+    modalTaskStatus.textContent = status;
+    modalTaskStatus.className = `modal-value ${statusClass}`;
+    
+    // Category
+    modalTaskCategory.textContent = task.category ? task.category.charAt(0).toUpperCase() + task.category.slice(1) : 'No category';
+    
+    // Due date
+    modalTaskDueDate.textContent = formatDate(task.dueDate);
+    
+    // Time tracked
+    modalTaskTime.textContent = formatDuration(getElapsedMs(task));
+    
+    // Created date
+    const createdDate = new Date(task.createdAt);
+    modalTaskCreated.textContent = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString();
+    
+    // Dependency
+    modalTaskDependency.textContent = getDependencyLabel(task);
+    
+    // Store current task ID for edit button
+    modalEdit.dataset.taskId = task.id;
+    
+    // Show modal
+    taskModal.classList.add('show');
+    taskModal.setAttribute('aria-hidden', 'false');
+    
+    // Focus management
+    modalClose.focus();
+}
+
+function hideTaskModal() {
+    taskModal.classList.remove('show');
+    taskModal.setAttribute('aria-hidden', 'true');
+}
+
+function openTaskDetails(taskId) {
+    showTaskModal(taskId);
 }
 
 function saveState() {
@@ -586,6 +669,7 @@ function startEditTask(taskId) {
     }
 
     taskInput.value = task.title;
+    taskDescription.value = task.description || '';
     priorityInput.value = task.priority;
     dateInput.value = task.dueDate || '';
     categoryInput.value = task.category || '';
@@ -606,6 +690,7 @@ function addOrUpdateTask(event) {
     const priority = priorityInput.value;
     const dueDate = dateInput.value || null;
     const category = categoryInput.value || null;
+    const description = taskDescription.value.trim();
     
     // Validate that due date is not in the past
     if (dueDate && isPastDate(dueDate)) {
@@ -627,6 +712,7 @@ function addOrUpdateTask(event) {
             state.tasks[index] = {
                 ...state.tasks[index],
                 title,
+                description,
                 priority,
                 dueDate,
                 dependencyId,
@@ -634,7 +720,7 @@ function addOrUpdateTask(event) {
             };
         }
     } else {
-        const newTask = createTask(title, priority, dueDate, dependencyId, category);
+        const newTask = createTask(title, priority, dueDate, dependencyId, category, description);
         state.tasks.unshift(newTask);
         notifyTaskCreated(newTask);
     }
@@ -1204,10 +1290,8 @@ function importTasksFromText(text) {
 
 function handleListClick(event) {
     const button = event.target.closest('button');
-    if (!button) {
-        return;
-    }
-
+    const taskTitle = event.target.closest('.task-title');
+    
     const taskItem = event.target.closest('.task-item');
     if (!taskItem) {
         return;
@@ -1215,6 +1299,17 @@ function handleListClick(event) {
 
     const taskId = taskItem.dataset.id;
     if (!taskId) {
+        return;
+    }
+
+    // Check if task title was clicked
+    if (taskTitle) {
+        openTaskDetails(taskId);
+        return;
+    }
+
+    // Handle button clicks
+    if (!button) {
         return;
     }
 
@@ -1360,3 +1455,23 @@ updateStats();
 // Initialize notifications
 requestNotificationPermission();
 checkOverdueTasks();
+
+// Modal event listeners
+modalClose.addEventListener('click', hideTaskModal);
+modalCloseFooter.addEventListener('click', hideTaskModal);
+modalOverlay.addEventListener('click', hideTaskModal);
+
+modalEdit.addEventListener('click', () => {
+    const taskId = modalEdit.dataset.taskId;
+    if (taskId) {
+        hideTaskModal();
+        startEditTask(taskId);
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && taskModal.classList.contains('show')) {
+        hideTaskModal();
+    }
+});

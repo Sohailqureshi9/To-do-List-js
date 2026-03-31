@@ -64,6 +64,10 @@
                     <input type="text" id="task-input" name="task" placeholder="Write a task name" maxlength="120"
                         required>
                 </div>
+                <div class="field-wrap">
+                    <label for="task-description">Description</label>
+                    <textarea id="task-description" name="description" placeholder="Add task details (optional)" rows="3" maxlength="500"></textarea>
+                </div>
                 <div class="field-wrap small">
                     <label for="task-priority">Priority</label>
                     <select id="task-priority" name="priority">
@@ -176,6 +180,59 @@
     </main>
 
     <div id="notification-container" class="notification-container" aria-live="polite"></div>
+
+    <!-- Task Details Modal -->
+    <div id="task-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-overlay" id="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Task Details</h2>
+                <button id="modal-close" class="modal-close" type="button" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Task Title</label>
+                    <p id="modal-task-title" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Description</label>
+                    <p id="modal-task-description" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Priority</label>
+                    <p id="modal-task-priority" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Status</label>
+                    <p id="modal-task-status" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Category</label>
+                    <p id="modal-task-category" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Due Date</label>
+                    <p id="modal-task-due-date" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Time Tracked</label>
+                    <p id="modal-task-time" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Created</label>
+                    <p id="modal-task-created" class="modal-value"></p>
+                </div>
+                <div class="modal-field">
+                    <label>Dependency</label>
+                    <p id="modal-task-dependency" class="modal-value"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-edit" class="btn btn-primary" type="button">Edit Task</button>
+                <button id="modal-close-footer" class="btn btn-secondary" type="button">Close</button>
+            </div>
+        </div>
+    </div>
 
     <template id="task-template">
         <li class="task-item" draggable="true">
