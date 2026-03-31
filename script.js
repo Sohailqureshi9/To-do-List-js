@@ -18,6 +18,11 @@ const calendarDays = document.getElementById('calendar-days');
 const calendarMonthYear = document.getElementById('calendar-month-year');
 const calendarPrevBtn = document.getElementById('calendar-prev');
 const calendarNextBtn = document.getElementById('calendar-next');
+const paginationContainer = document.getElementById('pagination-container');
+const paginationText = document.getElementById('pagination-text');
+const paginationPrevBtn = document.getElementById('pagination-prev');
+const paginationNextBtn = document.getElementById('pagination-next');
+const paginationPages = document.getElementById('pagination-pages');
 const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
 const clearCompletedButton = document.getElementById('clear-completed');
@@ -30,6 +35,7 @@ const taskTemplate = document.getElementById('task-template');
 const totalTasksElement = document.getElementById('total-tasks');
 const completedTasksElement = document.getElementById('completed-tasks');
 const runningTimersElement = document.getElementById('running-timers');
+const overdueTasksElement = document.getElementById('overdue-tasks');
 const timeTodayElement = document.getElementById('time-today');
 
 const formSubmitButton = taskForm.querySelector('button[type="submit"]');
@@ -42,7 +48,9 @@ let state = {
     query: '',
     editingTaskId: null,
     currentView: 'list',
-    calendarDate: new Date()
+    calendarDate: new Date(),
+    currentPage: 1,
+    tasksPerPage: 10
 };
 
 let dragTaskId = null;
@@ -261,6 +269,7 @@ function updateStats() {
     const total = state.tasks.length;
     const completed = state.tasks.filter((task) => task.completed).length;
     const running = state.tasks.filter((task) => task.isRunning).length;
+    const overdue = state.tasks.filter((task) => isOverdue(task)).length;
 
     const todayKey = new Date().toISOString().slice(0, 10);
     const timeToday = state.tasks.reduce((sum, task) => {
@@ -275,6 +284,21 @@ function updateStats() {
     completedTasksElement.textContent = String(completed);
     runningTimersElement.textContent = String(running);
     timeTodayElement.textContent = formatDuration(timeToday);
+    overdueTasksElement.textContent = String(overdue);
+}
+
+function updateOverdueStatus() {
+    // This function will be called to update overdue status
+    // The isOverdue function already checks current date
+    // This ensures UI updates when tasks become overdue
+    renderTasks();
+}
+
+function getPaginatedTasks() {
+    const visibleTasks = getVisibleTasks();
+    const startIndex = (state.currentPage - 1) * state.tasksPerPage;
+    const endIndex = startIndex + state.tasksPerPage;
+    return visibleTasks.slice(startIndex, endIndex);
 }
 
 function renderTasks() {
@@ -283,10 +307,10 @@ function renderTasks() {
         return;
     }
     
-    const visibleTasks = getVisibleTasks();
+    const paginatedTasks = getPaginatedTasks();
     const fragment = document.createDocumentFragment();
 
-    visibleTasks.forEach((task) => {
+    paginatedTasks.forEach((task) => {
         const clone = taskTemplate.content.cloneNode(true);
         const item = clone.querySelector('.task-item');
         const check = clone.querySelector('.task-check');
@@ -300,9 +324,19 @@ function renderTasks() {
         item.dataset.id = task.id;
         item.classList.toggle('completed', task.completed);
         item.classList.toggle('is-running', task.isRunning);
+        item.classList.toggle('overdue', isOverdue(task));
 
         check.checked = task.completed;
-        title.textContent = task.title;
+        
+        // Add overdue badge to title
+        title.innerHTML = task.title;
+        if (isOverdue(task)) {
+            const overdueBadge = document.createElement('span');
+            overdueBadge.className = 'overdue-badge';
+            overdueBadge.textContent = 'OVERDUE';
+            title.appendChild(overdueBadge);
+        }
+        
         priority.textContent = task.priority;
         priority.classList.add(`priority-${task.priority}`);
 
@@ -324,7 +358,8 @@ function renderTasks() {
 
     taskList.innerHTML = '';
     taskList.appendChild(fragment);
-    emptyState.classList.toggle('hidden', visibleTasks.length > 0);
+    emptyState.classList.toggle('hidden', paginatedTasks.length > 0);
+    renderPagination();
 }
 
 function updateLiveTimers() {
@@ -594,6 +629,7 @@ function clearCompleted() {
 
 function setFilter(nextFilter) {
     state.filter = nextFilter;
+    state.currentPage = 1; // Reset to first page when filter changes
     filterButtons.forEach((button) => {
         button.classList.toggle('is-active', button.dataset.filter === nextFilter);
     });
@@ -602,6 +638,7 @@ function setFilter(nextFilter) {
 
 function setCategory(nextCategory) {
     state.category = nextCategory;
+    state.currentPage = 1; // Reset to first page when category changes
     categoryButtons.forEach((button) => {
         button.classList.toggle('is-active', button.dataset.category === nextCategory);
     });
@@ -695,8 +732,11 @@ function createCalendarDay(day, isOtherMonth, date) {
     dayTasks.forEach(task => {
         const taskElement = document.createElement('div');
         taskElement.className = `calendar-task priority-${task.priority}`;
+        if (isOverdue(task)) {
+            taskElement.classList.add('overdue');
+        }
         taskElement.textContent = task.title;
-        taskElement.title = task.title;
+        taskElement.title = task.title + (isOverdue(task) ? ' (OVERDUE)' : '');
         taskElement.addEventListener('click', () => startEditTask(task.id));
         tasksContainer.appendChild(taskElement);
     });
@@ -718,6 +758,90 @@ function changeCalendarMonth(direction) {
     }
     
     renderCalendar();
+}
+
+function getPaginatedTasks() {
+    const visibleTasks = getVisibleTasks();
+    const startIndex = (state.currentPage - 1) * state.tasksPerPage;
+    const endIndex = startIndex + state.tasksPerPage;
+    return visibleTasks.slice(startIndex, endIndex);
+}
+
+function getTotalPages() {
+    const visibleTasks = getVisibleTasks();
+    return Math.ceil(visibleTasks.length / state.tasksPerPage);
+}
+
+function setPage(page) {
+    const totalPages = getTotalPages();
+    if (page < 1 || page > totalPages) {
+        return;
+    }
+    state.currentPage = page;
+    renderTasks();
+    renderPagination();
+}
+
+function renderPagination() {
+    const visibleTasks = getVisibleTasks();
+    const totalPages = getTotalPages();
+    
+    if (totalPages <= 1 || state.currentView === 'calendar') {
+        paginationContainer.classList.add('hidden');
+        return;
+    }
+    
+    paginationContainer.classList.remove('hidden');
+    
+    // Update pagination info
+    const startItem = (state.currentPage - 1) * state.tasksPerPage + 1;
+    const endItem = Math.min(state.currentPage * state.tasksPerPage, visibleTasks.length);
+    paginationText.textContent = `Showing ${startItem}-${endItem} of ${visibleTasks.length} tasks`;
+    
+    // Update prev/next buttons
+    paginationPrevBtn.disabled = state.currentPage === 1;
+    paginationNextBtn.disabled = state.currentPage === totalPages;
+    
+    // Update page buttons
+    paginationPages.innerHTML = '';
+    
+    // Show page numbers with ellipsis for many pages
+    let startPage = Math.max(1, state.currentPage - 2);
+    let endPage = Math.min(totalPages, state.currentPage + 2);
+    
+    if (startPage > 1) {
+        addPageButton(1);
+        if (startPage > 2) {
+            const ellipsis = document.createElement('span');
+            ellipsis.textContent = '...';
+            ellipsis.style.padding = '0 0.5rem';
+            paginationPages.appendChild(ellipsis);
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        addPageButton(i);
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsis = document.createElement('span');
+            ellipsis.textContent = '...';
+            ellipsis.style.padding = '0 0.5rem';
+            paginationPages.appendChild(ellipsis);
+        }
+        addPageButton(totalPages);
+    }
+}
+
+function addPageButton(pageNum) {
+    const button = document.createElement('button');
+    button.className = 'btn btn-ghost pagination-page';
+    button.textContent = pageNum;
+    button.type = 'button';
+    button.classList.toggle('is-active', pageNum === state.currentPage);
+    button.addEventListener('click', () => setPage(pageNum));
+    paginationPages.appendChild(button);
 }
 
 function reorderTasks(dragId, dropId) {
@@ -943,6 +1067,7 @@ searchInput.addEventListener('input', (event) => {
     window.clearTimeout(searchDebounce);
     searchDebounce = window.setTimeout(() => {
         state.query = nextQuery;
+        state.currentPage = 1; // Reset to first page when search changes
         renderTasks();
     }, 140);
 });
@@ -959,6 +1084,9 @@ listViewBtn.addEventListener('click', () => setView('list'));
 calendarViewBtn.addEventListener('click', () => setView('calendar'));
 calendarPrevBtn.addEventListener('click', () => changeCalendarMonth(-1));
 calendarNextBtn.addEventListener('click', () => changeCalendarMonth(1));
+
+paginationPrevBtn.addEventListener('click', () => setPage(state.currentPage - 1));
+paginationNextBtn.addEventListener('click', () => setPage(state.currentPage + 1));
 
 taskList.addEventListener('click', handleListClick);
 taskList.addEventListener('change', handleListChange);
@@ -1031,4 +1159,5 @@ dateInput.setAttribute('min', today);
 
 setInterval(() => {
     updateLiveTimers();
+    updateOverdueStatus();
 }, 1000);
