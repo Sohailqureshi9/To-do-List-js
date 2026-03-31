@@ -1,8 +1,10 @@
 const STORAGE_KEY = 'taskflow-v1';
 const ARCHIVE_STORAGE_KEY = 'taskflow-archive-v1';
+const THEME_STORAGE_KEY = 'taskflow-theme';
 
 const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task-input');
+const taskDescription = document.getElementById('task-description');
 const priorityInput = document.getElementById('task-priority');
 const dateInput = document.getElementById('task-date');
 const dependencyInput = document.getElementById('task-dependency');
@@ -31,6 +33,24 @@ const exportPdfButton = document.getElementById('export-pdf');
 const importTasksButton = document.getElementById('import-tasks');
 const importFileInput = document.getElementById('import-file');
 const taskTemplate = document.getElementById('task-template');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const notificationContainer = document.getElementById('notification-container');
+
+// Modal elements
+const taskModal = document.getElementById('task-modal');
+const modalOverlay = document.getElementById('modal-overlay');
+const modalClose = document.getElementById('modal-close');
+const modalCloseFooter = document.getElementById('modal-close-footer');
+const modalEdit = document.getElementById('modal-edit');
+const modalTaskTitle = document.getElementById('modal-task-title');
+const modalTaskDescription = document.getElementById('modal-task-description');
+const modalTaskPriority = document.getElementById('modal-task-priority');
+const modalTaskStatus = document.getElementById('modal-task-status');
+const modalTaskCategory = document.getElementById('modal-task-category');
+const modalTaskDueDate = document.getElementById('modal-task-due-date');
+const modalTaskTime = document.getElementById('modal-task-time');
+const modalTaskCreated = document.getElementById('modal-task-created');
+const modalTaskDependency = document.getElementById('modal-task-dependency');
 
 const totalTasksElement = document.getElementById('total-tasks');
 const completedTasksElement = document.getElementById('completed-tasks');
@@ -63,10 +83,11 @@ function makeId() {
     return `task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createTask(title, priority, dueDate, dependencyId, category) {
+function createTask(title, priority, dueDate, dependencyId, category, description = '') {
     return {
         id: makeId(),
         title,
+        description,
         priority,
         dueDate: dueDate || null,
         dependencyId: dependencyId || null,
@@ -83,6 +104,7 @@ function normalizeTask(task) {
     return {
         id: task.id || makeId(),
         title: typeof task.title === 'string' ? task.title : '',
+        description: typeof task.description === 'string' ? task.description : '',
         priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
         dueDate: task.dueDate || null,
         dependencyId: task.dependencyId || null,
@@ -150,6 +172,222 @@ function isPastDate(dateString) {
     return selectedDate < today;
 }
 
+function showNotification(title, message, type = 'info', duration = 5000) {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+
+    notification.innerHTML = `
+        <div class="notification-header">
+            <span class="notification-icon">${icons[type]}</span>
+            <span class="notification-title">${title}</span>
+            <button class="notification-close" aria-label="Close notification">×</button>
+        </div>
+        <div class="notification-message">${message}</div>
+    `;
+
+    notificationContainer.appendChild(notification);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        notification.classList.add('show');
+    });
+
+    // Close button functionality
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.addEventListener('click', () => {
+        hideNotification(notification);
+    });
+
+    // Auto-hide after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            hideNotification(notification);
+        }, duration);
+    }
+
+    return notification;
+}
+
+function hideNotification(notification) {
+    if (!notification || !notification.parentNode) {
+        return;
+    }
+
+    notification.classList.add('hide');
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 300);
+}
+
+function requestNotificationPermission() {
+    if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    showNotification('Browser Notifications Enabled', 'You will receive browser notifications for important task events.', 'success');
+                }
+            });
+        }
+    }
+}
+
+function showBrowserNotification(title, message, options = {}) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        const notification = new Notification(title, {
+            body: message,
+            icon: 'images/icon.png',
+            badge: 'images/icon.png',
+            tag: 'taskflow',
+            ...options
+        });
+
+        notification.onclick = function () {
+            window.focus();
+            notification.close();
+        };
+
+        setTimeout(() => {
+            notification.close();
+        }, 5000);
+    }
+}
+
+function notifyTaskCreated(task) {
+    const title = 'Task Created';
+    const message = `"${task.title}" has been added to your tasks.`;
+
+    showNotification(title, message, 'success');
+    showBrowserNotification(title, message);
+}
+
+function notifyTaskCompleted(task) {
+    const title = 'Task Completed';
+    const message = `Congratulations! You completed "${task.title}".`;
+
+    showNotification(title, message, 'success');
+    showBrowserNotification(title, message);
+}
+
+function notifyTaskDeleted(task) {
+    const title = 'Task Deleted';
+    const message = `"${task.title}" has been removed from your tasks.`;
+
+    showNotification(title, message, 'info');
+    showBrowserNotification(title, message);
+}
+
+function notifyTaskOverdue(task) {
+    const title = 'Task Overdue';
+    const message = `"${task.title}" is overdue! Please complete it soon.`;
+
+    showNotification(title, message, 'warning');
+    showBrowserNotification(title, message, { urgency: 'high' });
+}
+
+function notifyTimerStarted(task) {
+    const title = 'Timer Started';
+    const message = `Timer started for "${task.title}".`;
+
+    showNotification(title, message, 'info');
+}
+
+function notifyTimerStopped(task) {
+    const elapsed = formatDuration(getElapsedMs(task));
+    const title = 'Timer Stopped';
+    const message = `Timer stopped for "${task.title}". Total time: ${elapsed}`;
+
+    showNotification(title, message, 'info');
+}
+
+function checkOverdueTasks() {
+    const overdueTasks = state.tasks.filter(task => isOverdue(task) && !task.completed);
+    const newlyOverdue = overdueTasks.filter(task => {
+        // Check if this task became overdue recently (within the last minute)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(`${task.dueDate}T00:00:00`);
+        const daysDiff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+        return daysDiff === 0; // Just became today
+    });
+
+    newlyOverdue.forEach(task => {
+        notifyTaskOverdue(task);
+    });
+}
+
+// Modal functions
+function showTaskModal(taskId) {
+    const task = getTaskById(taskId);
+    if (!task) {
+        return;
+    }
+
+    // Set modal content
+    modalTaskTitle.textContent = task.title;
+    modalTaskDescription.textContent = task.description || 'No description provided';
+
+    // Priority with styling
+    modalTaskPriority.textContent = task.priority.charAt(0).toUpperCase() + task.priority.slice(1);
+    modalTaskPriority.className = `modal-value priority-${task.priority}`;
+
+    // Status with styling
+    let status = 'Active';
+    let statusClass = 'status-active';
+    if (task.completed) {
+        status = 'Completed';
+        statusClass = 'status-completed';
+    } else if (isOverdue(task)) {
+        status = 'Overdue';
+        statusClass = 'status-overdue';
+    }
+    modalTaskStatus.textContent = status;
+    modalTaskStatus.className = `modal-value ${statusClass}`;
+
+    // Category
+    modalTaskCategory.textContent = task.category ? task.category.charAt(0).toUpperCase() + task.category.slice(1) : 'No category';
+
+    // Due date
+    modalTaskDueDate.textContent = formatDate(task.dueDate);
+
+    // Time tracked
+    modalTaskTime.textContent = formatDuration(getElapsedMs(task));
+
+    // Created date
+    const createdDate = new Date(task.createdAt);
+    modalTaskCreated.textContent = createdDate.toLocaleDateString() + ' ' + createdDate.toLocaleTimeString();
+
+    // Dependency
+    modalTaskDependency.textContent = getDependencyLabel(task);
+
+    // Store current task ID for edit button
+    modalEdit.dataset.taskId = task.id;
+
+    // Show modal
+    taskModal.classList.add('show');
+    taskModal.setAttribute('aria-hidden', 'false');
+
+    // Focus management
+    modalClose.focus();
+}
+
+function hideTaskModal() {
+    taskModal.classList.remove('show');
+    taskModal.setAttribute('aria-hidden', 'true');
+}
+
+function openTaskDetails(taskId) {
+    showTaskModal(taskId);
+}
+
 function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
     localStorage.setItem(ARCHIVE_STORAGE_KEY, JSON.stringify(state.archivedTasks));
@@ -194,6 +432,34 @@ function loadState() {
         dependencyId: task.dependencyId && taskIds.has(task.dependencyId) ? task.dependencyId : null
     }));
 }
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    applyTheme(theme);
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggleBtn.querySelector('.theme-icon').textContent = '☀️';
+        themeToggleBtn.querySelector('.theme-text').textContent = 'Light';
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggleBtn.querySelector('.theme-icon').textContent = '🌙';
+        themeToggleBtn.querySelector('.theme-text').textContent = 'Dark';
+    }
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+}
+
+themeToggleBtn.addEventListener('click', toggleTheme);
 
 function getVisibleTasks() {
     const query = state.query.trim().toLowerCase();
@@ -306,7 +572,7 @@ function renderTasks() {
         renderCalendar();
         return;
     }
-    
+
     const paginatedTasks = getPaginatedTasks();
     const fragment = document.createDocumentFragment();
 
@@ -327,7 +593,7 @@ function renderTasks() {
         item.classList.toggle('overdue', isOverdue(task));
 
         check.checked = task.completed;
-        
+
         // Add overdue badge to title
         title.innerHTML = task.title;
         if (isOverdue(task)) {
@@ -336,7 +602,7 @@ function renderTasks() {
             overdueBadge.textContent = 'OVERDUE';
             title.appendChild(overdueBadge);
         }
-        
+
         priority.textContent = task.priority;
         priority.classList.add(`priority-${task.priority}`);
 
@@ -403,6 +669,7 @@ function startEditTask(taskId) {
     }
 
     taskInput.value = task.title;
+    taskDescription.value = task.description || '';
     priorityInput.value = task.priority;
     dateInput.value = task.dueDate || '';
     categoryInput.value = task.category || '';
@@ -423,14 +690,15 @@ function addOrUpdateTask(event) {
     const priority = priorityInput.value;
     const dueDate = dateInput.value || null;
     const category = categoryInput.value || null;
-    
+    const description = taskDescription.value.trim();
+
     // Validate that due date is not in the past
     if (dueDate && isPastDate(dueDate)) {
         alert('Due date cannot be in the past. Please select today or a future date.');
         dateInput.focus();
         return;
     }
-    
+
     let dependencyId = dependencyInput.value || null;
 
     if (dependencyId && dependencyId === state.editingTaskId) {
@@ -444,6 +712,7 @@ function addOrUpdateTask(event) {
             state.tasks[index] = {
                 ...state.tasks[index],
                 title,
+                description,
                 priority,
                 dueDate,
                 dependencyId,
@@ -451,7 +720,9 @@ function addOrUpdateTask(event) {
             };
         }
     } else {
-        state.tasks.unshift(createTask(title, priority, dueDate, dependencyId, category));
+        const newTask = createTask(title, priority, dueDate, dependencyId, category, description);
+        state.tasks.unshift(newTask);
+        notifyTaskCreated(newTask);
     }
 
     taskForm.reset();
@@ -466,6 +737,7 @@ function addOrUpdateTask(event) {
 }
 
 function deleteTask(taskId) {
+    const taskToDelete = getTaskById(taskId);
     state.tasks = state.tasks.filter((task) => task.id !== taskId);
     state.tasks = state.tasks.map((task) => {
         if (task.dependencyId === taskId) {
@@ -482,6 +754,9 @@ function deleteTask(taskId) {
         priorityInput.value = 'medium';
         dependencyInput.value = '';
         categoryInput.value = '';
+    }
+    if (taskToDelete) {
+        notifyTaskDeleted(taskToDelete);
     }
     saveState();
     refreshDependencyOptions();
@@ -503,6 +778,10 @@ function toggleTaskComplete(taskId, isComplete) {
         accumulatedMs: isComplete ? getElapsedMs(task) : task.accumulatedMs,
         startedAt: isComplete ? null : task.startedAt
     };
+
+    if (isComplete) {
+        notifyTaskCompleted(state.tasks[index]);
+    }
 
     saveState();
     renderTasks();
@@ -527,6 +806,7 @@ function toggleTimer(taskId) {
             accumulatedMs: getElapsedMs(task),
             startedAt: null
         };
+        notifyTimerStopped(state.tasks[index]);
     } else {
         const startGuard = canStartTask(task);
         if (!startGuard.allowed) {
@@ -539,6 +819,7 @@ function toggleTimer(taskId) {
             isRunning: true,
             startedAt: Date.now()
         };
+        notifyTimerStarted(state.tasks[index]);
     }
 
     saveState();
@@ -651,7 +932,7 @@ function setView(viewType) {
     calendarViewBtn.classList.toggle('is-active', viewType === 'calendar');
     taskList.classList.toggle('hidden', viewType === 'calendar');
     calendarContainer.classList.toggle('hidden', viewType === 'list');
-    
+
     if (viewType === 'calendar') {
         renderCalendar();
     } else {
@@ -662,34 +943,34 @@ function setView(viewType) {
 function renderCalendar() {
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
-    
+
     // Update month/year display
     calendarMonthYear.textContent = new Date(year, month).toLocaleDateString('en-US', {
         month: 'long',
         year: 'numeric'
     });
-    
+
     // Get first day of month and number of days
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
-    
+
     // Clear calendar days
     calendarDays.innerHTML = '';
-    
+
     // Add previous month's trailing days
     for (let i = firstDay - 1; i >= 0; i--) {
         const day = daysInPrevMonth - i;
         const dayElement = createCalendarDay(day, true, new Date(year, month - 1, day));
         calendarDays.appendChild(dayElement);
     }
-    
+
     // Add current month's days
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = createCalendarDay(day, false, new Date(year, month, day));
         calendarDays.appendChild(dayElement);
     }
-    
+
     // Add next month's leading days
     const totalCells = calendarDays.children.length;
     const remainingCells = 42 - totalCells; // 6 weeks * 7 days
@@ -705,30 +986,30 @@ function createCalendarDay(day, isOtherMonth, date) {
     if (isOtherMonth) {
         dayElement.classList.add('other-month');
     }
-    
+
     // Check if today
     const today = new Date();
     if (date.toDateString() === today.toDateString()) {
         dayElement.classList.add('today');
     }
-    
+
     // Add day number
     const dayNumber = document.createElement('div');
     dayNumber.className = 'calendar-day-number';
     dayNumber.textContent = day;
     dayElement.appendChild(dayNumber);
-    
+
     // Add tasks for this day
     const tasksContainer = document.createElement('div');
     tasksContainer.className = 'calendar-tasks';
-    
+
     const visibleTasks = getVisibleTasks();
     const dayTasks = visibleTasks.filter(task => {
         if (!task.dueDate) return false;
         const taskDate = new Date(`${task.dueDate}T00:00:00`);
         return taskDate.toDateString() === date.toDateString();
     });
-    
+
     dayTasks.forEach(task => {
         const taskElement = document.createElement('div');
         taskElement.className = `calendar-task priority-${task.priority}`;
@@ -740,7 +1021,7 @@ function createCalendarDay(day, isOtherMonth, date) {
         taskElement.addEventListener('click', () => startEditTask(task.id));
         tasksContainer.appendChild(taskElement);
     });
-    
+
     dayElement.appendChild(tasksContainer);
     return dayElement;
 }
@@ -748,7 +1029,7 @@ function createCalendarDay(day, isOtherMonth, date) {
 function changeCalendarMonth(direction) {
     const newMonth = state.calendarDate.getMonth() + direction;
     const newYear = state.calendarDate.getFullYear();
-    
+
     if (newMonth < 0) {
         state.calendarDate = new Date(newYear - 1, 11, 1);
     } else if (newMonth > 11) {
@@ -756,7 +1037,7 @@ function changeCalendarMonth(direction) {
     } else {
         state.calendarDate = new Date(newYear, newMonth, 1);
     }
-    
+
     renderCalendar();
 }
 
@@ -785,30 +1066,30 @@ function setPage(page) {
 function renderPagination() {
     const visibleTasks = getVisibleTasks();
     const totalPages = getTotalPages();
-    
+
     if (totalPages <= 1 || state.currentView === 'calendar') {
         paginationContainer.classList.add('hidden');
         return;
     }
-    
+
     paginationContainer.classList.remove('hidden');
-    
+
     // Update pagination info
     const startItem = (state.currentPage - 1) * state.tasksPerPage + 1;
     const endItem = Math.min(state.currentPage * state.tasksPerPage, visibleTasks.length);
     paginationText.textContent = `Showing ${startItem}-${endItem} of ${visibleTasks.length} tasks`;
-    
+
     // Update prev/next buttons
     paginationPrevBtn.disabled = state.currentPage === 1;
     paginationNextBtn.disabled = state.currentPage === totalPages;
-    
+
     // Update page buttons
     paginationPages.innerHTML = '';
-    
+
     // Show page numbers with ellipsis for many pages
     let startPage = Math.max(1, state.currentPage - 2);
     let endPage = Math.min(totalPages, state.currentPage + 2);
-    
+
     if (startPage > 1) {
         addPageButton(1);
         if (startPage > 2) {
@@ -818,11 +1099,11 @@ function renderPagination() {
             paginationPages.appendChild(ellipsis);
         }
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         addPageButton(i);
     }
-    
+
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
             const ellipsis = document.createElement('span');
@@ -1009,9 +1290,7 @@ function importTasksFromText(text) {
 
 function handleListClick(event) {
     const button = event.target.closest('button');
-    if (!button) {
-        return;
-    }
+    const taskTitle = event.target.closest('.task-title');
 
     const taskItem = event.target.closest('.task-item');
     if (!taskItem) {
@@ -1020,6 +1299,17 @@ function handleListClick(event) {
 
     const taskId = taskItem.dataset.id;
     if (!taskId) {
+        return;
+    }
+
+    // Check if task title was clicked
+    if (taskTitle) {
+        openTaskDetails(taskId);
+        return;
+    }
+
+    // Handle button clicks
+    if (!button) {
         return;
     }
 
@@ -1148,16 +1438,41 @@ importFileInput.addEventListener('change', async (event) => {
     importFileInput.value = '';
 });
 
-loadState();
-refreshDependencyOptions();
-renderTasks();
-updateStats();
-
-// Set minimum date to today for date input
 const today = new Date().toISOString().split('T')[0];
 dateInput.setAttribute('min', today);
 
 setInterval(() => {
     updateLiveTimers();
     updateOverdueStatus();
+    checkOverdueTasks();
 }, 1000);
+
+loadState();
+loadTheme();
+refreshDependencyOptions();
+renderTasks();
+updateStats();
+
+// Initialize notifications
+requestNotificationPermission();
+checkOverdueTasks();
+
+// Modal event listeners
+modalClose.addEventListener('click', hideTaskModal);
+modalCloseFooter.addEventListener('click', hideTaskModal);
+modalOverlay.addEventListener('click', hideTaskModal);
+
+modalEdit.addEventListener('click', () => {
+    const taskId = modalEdit.dataset.taskId;
+    if (taskId) {
+        hideTaskModal();
+        startEditTask(taskId);
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && taskModal.classList.contains('show')) {
+        hideTaskModal();
+    }
+});
