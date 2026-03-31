@@ -5,6 +5,7 @@ const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task-input');
 const priorityInput = document.getElementById('task-priority');
 const dateInput = document.getElementById('task-date');
+const dependencyInput = document.getElementById('task-dependency');
 const searchInput = document.getElementById('search-input');
 const filterButtons = document.querySelectorAll('.btn-filter');
 const cancelEditButton = document.getElementById('cancel-edit');
@@ -42,12 +43,13 @@ function makeId() {
     return `task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createTask(title, priority, dueDate) {
+function createTask(title, priority, dueDate, dependencyId) {
     return {
         id: makeId(),
         title,
         priority,
         dueDate: dueDate || null,
+        dependencyId: dependencyId || null,
         completed: false,
         createdAt: Date.now(),
         accumulatedMs: 0,
@@ -62,6 +64,7 @@ function normalizeTask(task) {
         title: typeof task.title === 'string' ? task.title : '',
         priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
         dueDate: task.dueDate || null,
+        dependencyId: task.dependencyId || null,
         completed: Boolean(task.completed),
         createdAt: Number(task.createdAt) || Date.now(),
         accumulatedMs: Number(task.accumulatedMs) || 0,
@@ -115,6 +118,16 @@ function isOverdue(task) {
     return due < today;
 }
 
+function isPastDate(dateString) {
+    if (!dateString) {
+        return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(`${dateString}T00:00:00`);
+    return selectedDate < today;
+}
+
 function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.tasks));
     localStorage.setItem(ARCHIVE_STORAGE_KEY, JSON.stringify(state.archivedTasks));
@@ -152,6 +165,12 @@ function loadState() {
         console.error('Failed to parse archived tasks:', error);
         state.archivedTasks = [];
     }
+
+    const taskIds = new Set(state.tasks.map((task) => task.id));
+    state.tasks = state.tasks.map((task) => ({
+        ...task,
+        dependencyId: task.dependencyId && taskIds.has(task.dependencyId) ? task.dependencyId : null
+    }));
 }
 
 function getVisibleTasks() {
@@ -167,6 +186,57 @@ function getVisibleTasks() {
 
         return matchesFilter && matchesQuery;
     });
+}
+
+function getRunningTasks() {
+    return state.tasks.filter((task) => task.isRunning);
+}
+
+function canStartTask(task) {
+    const running = getRunningTasks();
+    if (running.length === 0) {
+        return { allowed: true, reason: '' };
+    }
+
+    const dependencyRunning = task.dependencyId && running.some((item) => item.id === task.dependencyId);
+    if (dependencyRunning) {
+        return { allowed: true, reason: '' };
+    }
+
+    return {
+        allowed: false,
+        reason: 'Another task is already running. Only its dependent task can be started.'
+    };
+}
+
+function getDependencyLabel(task) {
+    if (!task.dependencyId) {
+        return 'No dependency';
+    }
+    const parentTask = getTaskById(task.dependencyId);
+    return parentTask ? `Depends on: ${parentTask.title}` : 'Dependency removed';
+}
+
+function refreshDependencyOptions() {
+    const selected = dependencyInput.value;
+    dependencyInput.innerHTML = '<option value="">No dependency</option>';
+
+    state.tasks.forEach((task) => {
+        if (state.editingTaskId && task.id === state.editingTaskId) {
+            return;
+        }
+
+        const option = document.createElement('option');
+        option.value = task.id;
+        option.textContent = task.title;
+        dependencyInput.appendChild(option);
+    });
+
+    if (selected && state.tasks.some((task) => task.id === selected) && selected !== state.editingTaskId) {
+        dependencyInput.value = selected;
+    } else {
+        dependencyInput.value = '';
+    }
 }
 
 function updateStats() {
@@ -206,6 +276,7 @@ function renderTasks() {
 
         item.dataset.id = task.id;
         item.classList.toggle('completed', task.completed);
+        item.classList.toggle('is-running', task.isRunning);
 
         check.checked = task.completed;
         title.textContent = task.title;
@@ -214,11 +285,14 @@ function renderTasks() {
 
         const dueDateText = formatDate(task.dueDate);
         const overdueText = isOverdue(task) ? 'Overdue' : 'On schedule';
-        meta.innerHTML = `<span>Due: ${dueDateText}</span><span>${overdueText}</span>`;
+        const dependencyText = getDependencyLabel(task);
+        meta.innerHTML = `<span>Due: ${dueDateText}</span><span>${overdueText}</span><span>${dependencyText}</span>`;
 
         timerDisplay.textContent = formatDuration(getElapsedMs(task));
         startPauseButton.textContent = task.isRunning ? 'Pause' : 'Start';
-        startPauseButton.disabled = task.completed;
+        const startGuard = canStartTask(task);
+        startPauseButton.disabled = task.completed || (!task.isRunning && !startGuard.allowed);
+        startPauseButton.title = task.isRunning ? 'Pause timer' : (startGuard.allowed ? 'Start timer' : startGuard.reason);
         resetButton.disabled = false;
 
         fragment.appendChild(clone);
@@ -253,12 +327,14 @@ function setEditingMode(taskId) {
     state.editingTaskId = taskId;
     formSubmitButton.textContent = 'Update Task';
     cancelEditButton.classList.remove('hidden');
+    refreshDependencyOptions();
 }
 
 function clearEditingMode() {
     state.editingTaskId = null;
     formSubmitButton.textContent = 'Add Task';
     cancelEditButton.classList.add('hidden');
+    refreshDependencyOptions();
 }
 
 function startEditTask(taskId) {
@@ -271,6 +347,7 @@ function startEditTask(taskId) {
     priorityInput.value = task.priority;
     dateInput.value = task.dueDate || '';
     setEditingMode(taskId);
+    dependencyInput.value = task.dependencyId || '';
     taskInput.focus();
 }
 
@@ -285,6 +362,33 @@ function addOrUpdateTask(event) {
 
     const priority = priorityInput.value;
     const dueDate = dateInput.value || null;
+    
+    // Validate that due date is not in the past
+    if (dueDate && isPastDate(dueDate)) {
+        alert('Due date cannot be in the past. Please select today or a future date.');
+        dateInput.focus();
+        return;
+    }
+    
+    let dependencyId = dependencyInput.value || null;
+    const dependAboveBox = document.getElementById('task-depend-above');
+
+    if (dependAboveBox && dependAboveBox.checked) {
+        if (!state.editingTaskId && state.tasks.length > 0) {
+            dependencyId = state.tasks[0].id;
+        } else if (state.editingTaskId) {
+            const visibleTasks = getVisibleTasks();
+            const vIndex = visibleTasks.findIndex(t => t.id === state.editingTaskId);
+            if (vIndex > 0) {
+                dependencyId = visibleTasks[vIndex - 1].id;
+            }
+        }
+    }
+
+    if (dependencyId && dependencyId === state.editingTaskId) {
+        alert('A task cannot depend on itself.');
+        return;
+    }
 
     if (state.editingTaskId) {
         const index = getTaskIndex(state.editingTaskId);
@@ -293,15 +397,18 @@ function addOrUpdateTask(event) {
                 ...state.tasks[index],
                 title,
                 priority,
-                dueDate
+                dueDate,
+                dependencyId
             };
         }
     } else {
-        state.tasks.unshift(createTask(title, priority, dueDate));
+        state.tasks.unshift(createTask(title, priority, dueDate, dependencyId));
     }
 
     taskForm.reset();
     priorityInput.value = 'medium';
+    dependencyInput.value = '';
+    if (dependAboveBox) dependAboveBox.checked = false;
     clearEditingMode();
 
     saveState();
@@ -311,12 +418,25 @@ function addOrUpdateTask(event) {
 
 function deleteTask(taskId) {
     state.tasks = state.tasks.filter((task) => task.id !== taskId);
+    state.tasks = state.tasks.map((task) => {
+        if (task.dependencyId === taskId) {
+            return {
+                ...task,
+                dependencyId: null
+            };
+        }
+        return task;
+    });
     if (state.editingTaskId === taskId) {
         clearEditingMode();
         taskForm.reset();
         priorityInput.value = 'medium';
+        dependencyInput.value = '';
+        const dependBox = document.getElementById('task-depend-above');
+        if (dependBox) dependBox.checked = false;
     }
     saveState();
+    refreshDependencyOptions();
     renderTasks();
     updateStats();
 }
@@ -360,6 +480,12 @@ function toggleTimer(taskId) {
             startedAt: null
         };
     } else {
+        const startGuard = canStartTask(task);
+        if (!startGuard.allowed) {
+            alert(startGuard.reason);
+            return;
+        }
+
         state.tasks[index] = {
             ...task,
             isRunning: true,
@@ -370,6 +496,33 @@ function toggleTimer(taskId) {
     saveState();
     renderTasks();
     updateStats();
+}
+
+function linkToAboveTask(taskId) {
+    const visibleTasks = getVisibleTasks();
+    const index = visibleTasks.findIndex((t) => t.id === taskId);
+    if (index > 0) {
+        const aboveTask = visibleTasks[index - 1];
+        const stateIndex = getTaskIndex(taskId);
+        if (stateIndex !== -1) {
+            if (aboveTask.id === state.tasks[stateIndex].dependencyId) {
+                alert('Already linked to the task above.');
+                return;
+            }
+            if (aboveTask.id === taskId) {
+                return;
+            }
+            state.tasks[stateIndex] = {
+                ...state.tasks[stateIndex],
+                dependencyId: aboveTask.id
+            };
+            saveState();
+            renderTasks();
+            updateStats();
+        }
+    } else {
+        alert('This is the topmost task, cannot link to an above task.');
+    }
 }
 
 function resetTimer(taskId) {
@@ -394,6 +547,7 @@ function resetTimer(taskId) {
 }
 
 function clearCompleted() {
+    const removedIds = new Set(state.tasks.filter((task) => task.completed).map((task) => task.id));
     const completed = state.tasks
         .filter((task) => task.completed)
         .map((task) => ({
@@ -409,8 +563,18 @@ function clearCompleted() {
 
     state.archivedTasks = [...completed, ...state.archivedTasks];
     state.tasks = state.tasks.filter((task) => !task.completed);
+    state.tasks = state.tasks.map((task) => {
+        if (task.dependencyId && removedIds.has(task.dependencyId)) {
+            return {
+                ...task,
+                dependencyId: null
+            };
+        }
+        return task;
+    });
 
     saveState();
+    refreshDependencyOptions();
     renderTasks();
     updateStats();
 }
@@ -564,6 +728,11 @@ function importTasksFromText(text) {
     }
 
     state.tasks = importedTasks.map(normalizeTask);
+    const taskIds = new Set(state.tasks.map((task) => task.id));
+    state.tasks = state.tasks.map((task) => ({
+        ...task,
+        dependencyId: task.dependencyId && taskIds.has(task.dependencyId) ? task.dependencyId : null
+    }));
     const importedArchived = Array.isArray(parsed.archivedTasks) ? parsed.archivedTasks : [];
     state.archivedTasks = importedArchived.map((task) => ({
         ...normalizeTask(task),
@@ -572,8 +741,11 @@ function importTasksFromText(text) {
     clearEditingMode();
     taskForm.reset();
     priorityInput.value = 'medium';
+    dependencyInput.value = '';
+    refreshDependencyOptions();
 
     saveState();
+    refreshDependencyOptions();
     renderTasks();
     updateStats();
 }
@@ -596,6 +768,8 @@ function handleListClick(event) {
 
     if (button.classList.contains('start-pause-btn')) {
         toggleTimer(taskId);
+    } else if (button.classList.contains('link-above-btn')) {
+        linkToAboveTask(taskId);
     } else if (button.classList.contains('reset-btn')) {
         resetTimer(taskId);
     } else if (button.classList.contains('delete-btn')) {
@@ -628,6 +802,7 @@ cancelEditButton.addEventListener('click', () => {
     clearEditingMode();
     taskForm.reset();
     priorityInput.value = 'medium';
+    dependencyInput.value = '';
 });
 
 searchInput.addEventListener('input', (event) => {
@@ -704,8 +879,13 @@ importFileInput.addEventListener('change', async (event) => {
 });
 
 loadState();
+refreshDependencyOptions();
 renderTasks();
 updateStats();
+
+// Set minimum date to today for date input
+const today = new Date().toISOString().split('T')[0];
+dateInput.setAttribute('min', today);
 
 setInterval(() => {
     updateLiveTimers();

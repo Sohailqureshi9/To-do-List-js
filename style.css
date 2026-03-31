@@ -144,6 +144,16 @@ h1 {
     margin-bottom: 0.9rem;
 }
 
+.workflow-note {
+    margin: 0 0 0.9rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #eed9c6;
+    background: #fff8ef;
+    border-radius: 10px;
+    color: #65412a;
+    font-size: 0.84rem;
+}
+
 .field-wrap {
     display: grid;
     gap: 0.35rem;
@@ -460,7 +470,7 @@ button:focus-visible {
     }
 
     .task-form {
-        grid-template-columns: 1.9fr 1fr 1fr auto;
+        grid-template-columns: 1.9fr 1fr 1fr 1.2fr auto auto;
         align-items: end;
     }
 

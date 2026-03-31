@@ -64,9 +64,21 @@
                     <label for="task-date">Due Date</label>
                     <input type="date" id="task-date" name="dueDate">
                 </div>
+                <div class="field-wrap small">
+                    <label for="task-dependency">Depends On</label>
+                    <select id="task-dependency" name="dependency">
+                        <option value="">No dependency</option>
+                    </select>
+                </div>
+                <div class="field-wrap small checkbox-field" style="display: flex; align-items: center; gap: 0.5rem; justify-content: flex-start; margin-top: 1rem;">
+                    <input type="checkbox" id="task-depend-above" name="dependAbove" style="width: auto; margin: 0;">
+                    <label for="task-depend-above" style="margin: 0; cursor: pointer; white-space: nowrap;">Depend on Above Task</label>
+                </div>
                 <button type="submit" class="btn btn-primary">Add Task</button>
                 <button id="cancel-edit" type="button" class="btn btn-secondary hidden">Cancel Edit</button>
             </form>
+            <p class="workflow-note" id="workflow-note">Workflow lock: only one independent task can run. Dependent
+                tasks can run only if their parent task is currently running.</p>
 
             <div class="toolbar">
                 <div class="search-wrap">
@@ -118,6 +130,7 @@
                 <span class="timer-display">00:00:00</span>
                 <div class="timer-buttons">
                     <button class="btn btn-ghost start-pause-btn" type="button">Start</button>
+                    <button class="btn btn-ghost link-above-btn" type="button" title="Link to task above">Link ↑</button>
                     <button class="btn btn-ghost edit-btn" type="button">Edit</button>
                     <button class="btn btn-ghost reset-btn" type="button">Reset</button>
                     <button class="btn btn-ghost delete-btn" type="button">Delete</button>
