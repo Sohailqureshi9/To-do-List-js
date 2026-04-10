@@ -12,6 +12,9 @@
     --line: #e7d9cb;
     --ok: #2b8a3e;
     --shadow: 0 20px 50px rgba(69, 39, 19, 0.12);
+    --glass-fill: rgba(255, 255, 255, 0.5);
+    --glass-stroke: rgba(255, 255, 255, 0.62);
+    --glass-highlight: rgba(255, 255, 255, 0.5);
 }
 
 [data-theme="dark"] {
@@ -28,6 +31,9 @@
     --line: #3a4152;
     --ok: #27ae60;
     --shadow: 0 20px 50px rgba(0, 0, 0, 0.36);
+    --glass-fill: rgba(28, 34, 49, 0.58);
+    --glass-stroke: rgba(255, 255, 255, 0.2);
+    --glass-highlight: rgba(255, 255, 255, 0.18);
 }
 
 * {
@@ -49,7 +55,29 @@ body {
         radial-gradient(circle at 88% 16%, #ffd7c4 0, #ffd7c4 16%, transparent 45%),
         linear-gradient(160deg, #f5ecdf 0%, #fbe7d9 42%, #f6e5ce 100%);
     overflow-x: hidden;
+    position: relative;
     transition: background 0.3s ease;
+}
+
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+body::before {
+    background:
+        linear-gradient(110deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 30%),
+        radial-gradient(circle at 82% 70%, rgba(255, 255, 255, 0.14), transparent 40%);
+}
+
+body::after {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 0.5px, transparent 0.5px);
+    background-size: 3px 3px;
+    opacity: 0.22;
 }
 
 [data-theme="dark"] body {
@@ -138,9 +166,19 @@ body {
     background: var(--panel);
     backdrop-filter: blur(20px) saturate(150%);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--glass-stroke);
     border-radius: 24px;
-    box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    box-shadow: var(--shadow), inset 0 1px 0 var(--glass-highlight);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 42%);
 }
 
 .app-header {
@@ -388,7 +426,7 @@ button:focus-visible {
     z-index: 5;
     padding: 0.75rem;
     border-radius: 14px;
-    background: color-mix(in srgb, var(--panel-solid) 70%, transparent);
+    background: color-mix(in srgb, var(--panel-solid) 62%, transparent);
     backdrop-filter: blur(16px) saturate(135%);
     -webkit-backdrop-filter: blur(16px) saturate(135%);
     border: 1px solid var(--line);
@@ -1666,10 +1704,42 @@ textarea,
 .theme-btn,
 .modal-content,
 .modal-field {
-    background: color-mix(in srgb, var(--panel-solid) 82%, transparent);
-    backdrop-filter: blur(14px) saturate(130%);
-    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    background: color-mix(in srgb, var(--glass-fill) 88%, transparent);
+    backdrop-filter: blur(16px) saturate(138%);
+    -webkit-backdrop-filter: blur(16px) saturate(138%);
     border-color: color-mix(in srgb, var(--line) 72%, white);
+}
+
+.task-item,
+.stat-item,
+.workflow-note,
+.calendar-container,
+.pagination-container,
+.empty-state,
+.notification,
+.modal-content,
+.modal-field {
+    position: relative;
+    overflow: hidden;
+}
+
+.task-item::before,
+.stat-item::before,
+.workflow-note::before,
+.calendar-container::before,
+.pagination-container::before,
+.empty-state::before,
+.notification::after,
+.modal-content::before,
+.modal-field::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+    pointer-events: none;
 }
 
 [data-theme="dark"] .task-item,
@@ -1691,4 +1761,30 @@ textarea,
 [data-theme="dark"] .modal-content,
 [data-theme="dark"] .modal-field {
     border-color: color-mix(in srgb, var(--line) 72%, white);
+}
+
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+
+    .card,
+    .task-item,
+    .stat-item,
+    .workflow-note,
+    .calendar-container,
+    .pagination-container,
+    .empty-state,
+    .notification,
+    input,
+    select,
+    textarea,
+    .btn-secondary,
+    .btn-ghost,
+    .btn-filter,
+    .btn-view,
+    .btn-category,
+    .theme-btn,
+    .modal-content,
+    .modal-field,
+    .toolbar {
+        background: color-mix(in srgb, var(--panel-solid) 94%, white);
+    }
 }
