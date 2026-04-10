@@ -1939,3 +1939,81 @@ textarea,
         border-radius: 12px;
     }
 }
+
+/* Dark mode quality pass */
+[data-theme="dark"] {
+    --ink: #f3f7ff;
+    --muted: #b8c3d8;
+    --panel: rgba(20, 28, 44, 0.58);
+    --panel-solid: rgba(25, 35, 56, 0.72);
+    --line: #4b5b79;
+    --accent: #54a6ff;
+    --accent-deep: #2284f0;
+    --accent-soft: rgba(48, 83, 138, 0.42);
+    --ring: rgba(84, 166, 255, 0.4);
+    --glass-fill: rgba(22, 33, 54, 0.66);
+    --glass-stroke: rgba(167, 193, 235, 0.32);
+    --glass-highlight: rgba(219, 233, 255, 0.2);
+    --ios-segment-bg: rgba(24, 37, 61, 0.76);
+    --ios-segment-active: rgba(69, 97, 145, 0.9);
+}
+
+[data-theme="dark"] body::before {
+    background:
+        radial-gradient(circle at 20% 15%, rgba(83, 121, 182, 0.22) 0, rgba(83, 121, 182, 0) 42%),
+        radial-gradient(circle at 82% 76%, rgba(54, 93, 160, 0.2) 0, rgba(54, 93, 160, 0) 40%);
+}
+
+[data-theme="dark"] body::after {
+    opacity: 0.08;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .task-item,
+[data-theme="dark"] .calendar-container,
+[data-theme="dark"] .pagination-container,
+[data-theme="dark"] .notification,
+[data-theme="dark"] .toolbar,
+[data-theme="dark"] .modal-content {
+    box-shadow:
+        0 22px 48px rgba(2, 8, 20, 0.55),
+        inset 0 1px 0 rgba(231, 242, 255, 0.16);
+}
+
+[data-theme="dark"] .btn-primary {
+    color: #eaf3ff;
+    background: linear-gradient(180deg, #4da2ff, #1a78e6);
+    box-shadow: 0 10px 22px rgba(45, 130, 233, 0.32);
+}
+
+[data-theme="dark"] .btn-filter,
+[data-theme="dark"] .btn-view,
+[data-theme="dark"] .btn-category {
+    color: #c9d7ef;
+}
+
+[data-theme="dark"] .btn-filter.is-active,
+[data-theme="dark"] .btn-view.is-active,
+[data-theme="dark"] .btn-category.is-active {
+    color: #f4f8ff;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.14),
+        0 8px 16px rgba(4, 12, 28, 0.4);
+}
+
+[data-theme="dark"] .calendar-weekdays,
+[data-theme="dark"] .calendar-day.today {
+    background: rgba(60, 93, 146, 0.36);
+}
+
+[data-theme="dark"] .task-item.completed .task-title {
+    color: #93a6c8;
+}
+
+[data-theme="dark"] .task-item.overdue:hover {
+    background: rgba(102, 42, 46, 0.46);
+}
+
+[data-theme="dark"] .timer-display {
+    color: #dbe9ff;
+}
