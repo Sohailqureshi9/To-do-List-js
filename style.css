@@ -87,7 +87,7 @@ body {
 .app-shell {
     position: relative;
     z-index: 1;
-    width: min(1040px, calc(100% - 2rem));
+    width: min(1120px, calc(100% - 2rem));
     margin: 1rem auto 1.6rem;
     display: grid;
     gap: 1rem;
@@ -97,7 +97,7 @@ body {
 .site-footer {
     position: relative;
     z-index: 1;
-    width: min(1040px, calc(100% - 2rem));
+    width: min(1120px, calc(100% - 2rem));
     margin-inline: auto;
     padding: 0.85rem 1.1rem;
     display: flex;
@@ -137,7 +137,7 @@ body {
 .card {
     background: var(--panel);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.72);
     border-radius: 24px;
     box-shadow: var(--shadow);
 }
@@ -214,9 +214,10 @@ h1 {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.55rem;
     align-self: stretch;
+    width: 100%;
 }
 
 .stat-item {
@@ -241,6 +242,9 @@ h1 {
 
 .task-panel {
     padding: 1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.22)),
+        var(--panel);
 }
 
 .task-form {
@@ -272,7 +276,8 @@ h1 {
 }
 
 input,
-select {
+select,
+textarea {
     width: 100%;
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -281,10 +286,12 @@ select {
     color: var(--ink);
     background: var(--panel-solid);
     outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 input:focus,
 select:focus,
+textarea:focus,
 button:focus-visible {
     border-color: var(--accent);
     box-shadow: 0 0 0 4px var(--ring);
@@ -375,6 +382,19 @@ button:focus-visible {
     gap: 0.65rem;
     grid-template-columns: 1fr;
     margin-bottom: 0.8rem;
+    position: sticky;
+    top: 0.6rem;
+    z-index: 5;
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--panel-solid) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+}
+
+.search-wrap input {
+    border-radius: 999px;
+    padding-inline: 1rem;
 }
 
 .filters {
@@ -398,6 +418,13 @@ button:focus-visible {
     padding: 0.72rem;
     display: grid;
     gap: 0.7rem;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.task-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(64, 39, 23, 0.12);
+    border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
 }
 
 .task-item.dragging {
@@ -603,8 +630,17 @@ button:focus-visible {
     }
 
     .task-form {
-        grid-template-columns: 1.9fr 1fr 1fr 1.2fr auto auto;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         align-items: end;
+    }
+
+    .task-form .field-wrap:nth-child(1),
+    .task-form .field-wrap:nth-child(2) {
+        grid-column: span 2;
+    }
+
+    .task-form .btn {
+        align-self: end;
     }
 
     .toolbar {
@@ -623,6 +659,11 @@ button:focus-visible {
     .site-footer {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .toolbar {
+        position: static;
+        padding: 0.55rem;
     }
 }
 

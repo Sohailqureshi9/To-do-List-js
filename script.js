@@ -75,6 +75,19 @@ let state = {
 
 let dragTaskId = null;
 let searchDebounce = null;
+let overdueNotifiedToday = new Set();
+let lastOverdueCheckDate = '';
+
+function getLocalDateKey(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getTodayInputValue() {
+    return getLocalDateKey(new Date());
+}
 
 function makeId() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') {
@@ -309,18 +322,18 @@ function notifyTimerStopped(task) {
 }
 
 function checkOverdueTasks() {
+    const todayKey = getLocalDateKey();
+    if (lastOverdueCheckDate !== todayKey) {
+        overdueNotifiedToday = new Set();
+        lastOverdueCheckDate = todayKey;
+    }
+
     const overdueTasks = state.tasks.filter(task => isOverdue(task) && !task.completed);
-    const newlyOverdue = overdueTasks.filter(task => {
-        // Check if this task became overdue recently (within the last minute)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const due = new Date(`${task.dueDate}T00:00:00`);
-        const daysDiff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
-        return daysDiff === 0; // Just became today
-    });
+    const newlyOverdue = overdueTasks.filter((task) => !overdueNotifiedToday.has(task.id));
 
     newlyOverdue.forEach(task => {
         notifyTaskOverdue(task);
+        overdueNotifiedToday.add(task.id);
     });
 }
 
@@ -474,7 +487,9 @@ function getVisibleTasks() {
             state.category === 'all' ||
             task.category === state.category;
 
-        const matchesQuery = task.title.toLowerCase().includes(query);
+        const matchesQuery =
+            task.title.toLowerCase().includes(query) ||
+            task.description.toLowerCase().includes(query);
 
         return matchesFilter && matchesCategory && matchesQuery;
     });
@@ -486,12 +501,19 @@ function getRunningTasks() {
 
 function canStartTask(task) {
     const running = getRunningTasks();
-    if (running.length === 0) {
-        return { allowed: true, reason: '' };
+    if (task.dependencyId) {
+        const dependencyRunning = running.some((item) => item.id === task.dependencyId);
+        if (dependencyRunning) {
+            return { allowed: true, reason: '' };
+        }
+
+        return {
+            allowed: false,
+            reason: 'Dependent task can only start when its parent task is currently running.'
+        };
     }
 
-    const dependencyRunning = task.dependencyId && running.some((item) => item.id === task.dependencyId);
-    if (dependencyRunning) {
+    if (running.length === 0) {
         return { allowed: true, reason: '' };
     }
 
@@ -537,9 +559,9 @@ function updateStats() {
     const running = state.tasks.filter((task) => task.isRunning).length;
     const overdue = state.tasks.filter((task) => isOverdue(task)).length;
 
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayKey = getLocalDateKey();
     const timeToday = state.tasks.reduce((sum, task) => {
-        const createdDay = new Date(task.createdAt).toISOString().slice(0, 10);
+        const createdDay = getLocalDateKey(new Date(task.createdAt));
         if (createdDay === todayKey) {
             return sum + getElapsedMs(task);
         }
@@ -554,17 +576,26 @@ function updateStats() {
 }
 
 function updateOverdueStatus() {
-    // This function will be called to update overdue status
-    // The isOverdue function already checks current date
-    // This ensures UI updates when tasks become overdue
-    renderTasks();
+    const todayKey = getLocalDateKey();
+    if (lastOverdueCheckDate !== todayKey) {
+        lastOverdueCheckDate = todayKey;
+        renderTasks();
+        updateStats();
+    }
 }
 
-function getPaginatedTasks() {
-    const visibleTasks = getVisibleTasks();
-    const startIndex = (state.currentPage - 1) * state.tasksPerPage;
-    const endIndex = startIndex + state.tasksPerPage;
-    return visibleTasks.slice(startIndex, endIndex);
+function ensureValidCurrentPage() {
+    const totalPages = getTotalPages();
+    if (totalPages === 0) {
+        state.currentPage = 1;
+        return;
+    }
+    if (state.currentPage > totalPages) {
+        state.currentPage = totalPages;
+    }
+    if (state.currentPage < 1) {
+        state.currentPage = 1;
+    }
 }
 
 function renderTasks() {
@@ -573,6 +604,7 @@ function renderTasks() {
         return;
     }
 
+    ensureValidCurrentPage();
     const paginatedTasks = getPaginatedTasks();
     const fragment = document.createDocumentFragment();
 
@@ -595,7 +627,7 @@ function renderTasks() {
         check.checked = task.completed;
 
         // Add overdue badge to title
-        title.innerHTML = task.title;
+        title.textContent = task.title;
         if (isOverdue(task)) {
             const overdueBadge = document.createElement('span');
             overdueBadge.className = 'overdue-badge';
@@ -1042,6 +1074,7 @@ function changeCalendarMonth(direction) {
 }
 
 function getPaginatedTasks() {
+    ensureValidCurrentPage();
     const visibleTasks = getVisibleTasks();
     const startIndex = (state.currentPage - 1) * state.tasksPerPage;
     const endIndex = startIndex + state.tasksPerPage;
@@ -1055,6 +1088,11 @@ function getTotalPages() {
 
 function setPage(page) {
     const totalPages = getTotalPages();
+    if (totalPages === 0) {
+        state.currentPage = 1;
+        renderTasks();
+        return;
+    }
     if (page < 1 || page > totalPages) {
         return;
     }
@@ -1438,7 +1476,7 @@ importFileInput.addEventListener('change', async (event) => {
     importFileInput.value = '';
 });
 
-const today = new Date().toISOString().split('T')[0];
+const today = getTodayInputValue();
 dateInput.setAttribute('min', today);
 
 setInterval(() => {
